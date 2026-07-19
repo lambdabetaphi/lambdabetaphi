@@ -13,6 +13,8 @@ export interface Member {
   major?: string;
   hometown?: string;
   biography?: string;
+  chapter?: string;
+  slaveName?: string;
 }
 
 export interface Event {

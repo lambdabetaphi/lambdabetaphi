@@ -248,7 +248,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0917-555-0192',
     major: 'Civil Engineering & Business',
     hometown: 'Tagbilaran City, Bohol',
-    biography: 'Juan Carlo is an aspiring civil engineer. He manages fraternity operations at the University of Bohol, upholding our founding values.'
+    biography: 'Juan Carlo is an aspiring civil engineer. He manages fraternity operations at the University of Bohol, upholding our founding values.',
+    chapter: 'Bohol Alpha Chapter',
+    slaveName: 'Alpha Chief'
   },
   {
     id: 'm2',
@@ -264,7 +266,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0920-555-0143',
     major: 'Nursing & Public Health',
     hometown: 'Tagbilaran City, Bohol',
-    biography: 'Evelyn advocates for health equity and community clinic support. She directs the sorority chapter at Divine World College.'
+    biography: 'Evelyn advocates for health equity and community clinic support. She directs the sorority chapter at Divine World College.',
+    chapter: 'Bohol Beta Chapter',
+    slaveName: 'Beta Queen'
   },
   {
     id: 'm3',
@@ -280,7 +284,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0915-555-0177',
     major: 'Information Technology',
     hometown: 'Tagbilaran City, Bohol',
-    biography: 'Marcus is an IT developer who maintains our digital portal operations, registry records, and coordinates with international chapters.'
+    biography: 'Marcus is an IT developer who maintains our digital portal operations, registry records, and coordinates with international chapters.',
+    chapter: 'Bohol Alpha Chapter',
+    slaveName: 'Dev Commander'
   },
   {
     id: 'm4',
@@ -296,7 +302,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0912-555-0115',
     major: 'Finance & Economics',
     hometown: 'Cebu City, Philippines',
-    biography: 'Sophia is passionate about finance and handles chapter accounting, budgeting, and fundraising programs.'
+    biography: 'Sophia is passionate about finance and handles chapter accounting, budgeting, and fundraising programs.',
+    chapter: 'Bohol Alpha Chapter',
+    slaveName: 'Penny Pincher'
   },
   {
     id: 'm5',
@@ -312,7 +320,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0945-555-0211',
     major: 'Biochemistry & Philosophy',
     hometown: 'Tagbilaran City, Bohol',
-    biography: 'Valedictorian of the University of Bohol. Helena loves bio-research, clinical ethics, and volunteering.'
+    biography: 'Valedictorian of the University of Bohol. Helena loves bio-research, clinical ethics, and volunteering.',
+    chapter: 'Bohol Beta Chapter',
+    slaveName: 'Brain Sovereign'
   },
   {
     id: 'm6',
@@ -328,7 +338,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0941-555-0294',
     major: 'Marketing',
     hometown: 'Manila, Philippines',
-    biography: 'Daniel loves event curation, photography, and hiking. He organizes joint formals and inter-chapter meetings.'
+    biography: 'Daniel loves event curation, photography, and hiking. He organizes joint formals and inter-chapter meetings.',
+    chapter: 'Manila Alpha Chapter',
+    slaveName: 'Mix Master'
   },
   {
     id: 'm7',
@@ -344,7 +356,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0935-555-0222',
     major: 'Business Administration',
     hometown: 'Davao City, Philippines',
-    biography: 'Lucas is a sports enthusiast and active member of our campus philanthropy boards.'
+    biography: 'Lucas is a sports enthusiast and active member of our campus philanthropy boards.',
+    chapter: 'Davao Alpha Chapter',
+    slaveName: 'Sport Cadet'
   },
   {
     id: 'm8',
@@ -360,7 +374,9 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '650-555-0255',
     major: 'Journalism & Communications',
     hometown: 'California, USA',
-    biography: 'Aria edits our newsletter and manages global media updates for Lambda Beta Phi.'
+    biography: 'Aria edits our newsletter and manages global media updates for Lambda Beta Phi.',
+    chapter: 'California Alpha Chapter',
+    slaveName: 'Pen Knight'
   },
   {
     id: 'm9',
@@ -376,6 +392,8 @@ export const INITIAL_MEMBERS: Member[] = [
     phone: '0917-555-0123',
     major: 'Computer Science & Systems',
     hometown: 'Tagbilaran City, Bohol',
-    biography: 'Supreme Chapter Administrator for Lambda Beta Phi. Upholding global digital operations and community coordination.'
+    biography: 'Supreme Chapter Administrator for Lambda Beta Phi. Upholding global digital operations and community coordination.',
+    chapter: 'Supreme Archon Chapter',
+    slaveName: 'System Architect'
   }
 ];

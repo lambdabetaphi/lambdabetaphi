@@ -77,9 +77,8 @@ export default function MemberPortal({
   const [regPassword, setRegPassword] = useState('');
   const [regGender, setRegGender] = useState<'Brother' | 'Sister'>('Brother');
   const [regPhone, setRegPhone] = useState('');
-  const [regMajor, setRegMajor] = useState('');
-  const [regHometown, setRegHometown] = useState('');
-  const [regBio, setRegBio] = useState('');
+  const [regChapter, setRegChapter] = useState('');
+  const [regSlaveName, setRegSlaveName] = useState('');
   const [regAvatar, setRegAvatar] = useState('');
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -94,25 +93,18 @@ export default function MemberPortal({
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regName.trim() || !regEmail.trim()) return;
+    if (!regName.trim() || !regEmail.trim() || !regChapter.trim() || !regSlaveName.trim() || !regPhone.trim() || !regAvatar.trim()) return;
     if (isSupabaseConfigured && !regPassword) return;
 
-    const matchedAvatar = regAvatar.trim() || (
-      regGender === 'Brother'
-        ? 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80'
-        : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80'
-    );
-
     onRegister({
-      name: regName,
-      email: regEmail,
+      name: regName.trim(),
+      email: regEmail.trim(),
       gender: regGender,
       role: `Active ${regGender}`,
-      avatarUrl: matchedAvatar,
-      phone: regPhone || undefined,
-      major: regMajor || undefined,
-      hometown: regHometown || undefined,
-      biography: regBio || undefined,
+      avatarUrl: regAvatar.trim(),
+      phone: regPhone.trim(),
+      chapter: regChapter.trim(),
+      slaveName: regSlaveName.trim(),
       joinsDate: new Date().toISOString().split('T')[0]
     }, isSupabaseConfigured ? regPassword : undefined);
 
@@ -122,9 +114,8 @@ export default function MemberPortal({
     setRegEmail('');
     setRegPassword('');
     setRegPhone('');
-    setRegMajor('');
-    setRegHometown('');
-    setRegBio('');
+    setRegChapter('');
+    setRegSlaveName('');
     setRegAvatar('');
   };
 
@@ -333,7 +324,9 @@ export default function MemberPortal({
 
               <form onSubmit={handleRegisterSubmit} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Full Name</label>
+                  <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
@@ -344,9 +337,11 @@ export default function MemberPortal({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Email Address</label>
+                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       required
@@ -357,87 +352,77 @@ export default function MemberPortal({
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Affiliation</label>
-                    <select
-                      value={regGender}
-                      onChange={(e) => setRegGender(e.target.value as any)}
-                      className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 text-xs"
-                    >
-                      <option value="Brother">Brother (Fraternity)</option>
-                      <option value="Sister">Sister (Sorority)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {isSupabaseConfigured && (
-                  <div>
-                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Account Password</label>
+                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                      Account Password <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="password"
                       required
                       minLength={6}
-                      placeholder="Enter secure password (minimum 6 characters)"
+                      placeholder="Enter secure password (min 6 chars)"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
                     />
                   </div>
-                )}
+                </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Major Study</label>
+                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                      Chapter <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      placeholder="Chemistry & Business"
-                      value={regMajor}
-                      onChange={(e) => setRegMajor(e.target.value)}
+                      required
+                      placeholder="e.g., Bohol Alpha Chapter"
+                      value={regChapter}
+                      onChange={(e) => setRegChapter(e.target.value)}
                       className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Hometown</label>
+                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                      Slave Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      placeholder="Boston, MA"
-                      value={regHometown}
-                      onChange={(e) => setRegHometown(e.target.value)}
+                      required
+                      placeholder="e.g., System Architect"
+                      value={regSlaveName}
+                      onChange={(e) => setRegSlaveName(e.target.value)}
                       className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Phone Number</label>
-                  <input
-                    type="tel"
-                    placeholder="617-555-0199"
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Short Bio Statement</label>
-                  <textarea
-                    placeholder="Tell brothers and sisters about your goals..."
-                    rows={2}
-                    value={regBio}
-                    onChange={(e) => setRegBio(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">Profile Picture URL (Optional)</label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={regAvatar}
-                    onChange={(e) => setRegAvatar(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g., 0917-555-0123"
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                      Profile Picture URL <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://images.unsplash.com/photo-..."
+                      value={regAvatar}
+                      onChange={(e) => setRegAvatar(e.target.value)}
+                      className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 justify-end pt-3">
@@ -561,6 +546,11 @@ export default function MemberPortal({
                   <div className="space-y-1">
                     <h4 className="font-serif font-bold text-base text-white leading-tight uppercase tracking-wide">{currentUser.name}</h4>
                     <p className="text-[10px] text-gold-500 uppercase tracking-widest font-bold">{currentUser.role}</p>
+                    {currentUser.slaveName && (
+                      <p className="text-[9px] text-rose-400 font-mono uppercase tracking-widest font-bold">
+                        SLAVE: {currentUser.slaveName}
+                      </p>
+                    )}
                     <p className="text-[8px] text-navy-400 font-mono tracking-wider">MEMBER ID: LBP-2026-00{currentUser.id.slice(-1) || '9'}</p>
                   </div>
                 </div>
@@ -568,7 +558,7 @@ export default function MemberPortal({
                 <div className="flex justify-between items-end border-t border-white/5 pt-3 text-[9px] text-navy-300 relative z-10 font-mono">
                   <div>
                     <p className="uppercase text-[7px] text-navy-400">Jurisdiction</p>
-                    <p className="font-bold text-white uppercase">Lambda Chapter</p>
+                    <p className="font-bold text-white uppercase">{currentUser.chapter || 'Lambda Chapter'}</p>
                   </div>
                   <div>
                     <p className="uppercase text-[7px] text-navy-400">Dues Status</p>
@@ -587,12 +577,16 @@ export default function MemberPortal({
                 <h4 className="text-[9px] font-bold text-navy-400 uppercase tracking-widest">Quick Profile Facts</h4>
                 <div className="grid grid-cols-2 gap-4 text-xs font-sans text-navy-950/80">
                   <div className="p-3 bg-[#fbf9f4] rounded-none border border-navy-950/5">
-                    <span className="text-navy-400 block mb-0.5 text-[9px] uppercase tracking-wider font-bold">Hometown</span>
-                    <strong className="text-navy-950 font-bold uppercase text-[11px]">{currentUser.hometown || 'Not Specified'}</strong>
+                    <span className="text-navy-400 block mb-0.5 text-[9px] uppercase tracking-wider font-bold">Chapter Affiliation</span>
+                    <strong className="text-navy-950 font-bold uppercase text-[11px] truncate block">{currentUser.chapter || 'Not Specified'}</strong>
                   </div>
                   <div className="p-3 bg-[#fbf9f4] rounded-none border border-navy-950/5">
-                    <span className="text-navy-400 block mb-0.5 text-[9px] uppercase tracking-wider font-bold">Academic Field</span>
-                    <strong className="text-navy-950 font-bold uppercase text-[11px] truncate block">{currentUser.major || 'Not Specified'}</strong>
+                    <span className="text-navy-400 block mb-0.5 text-[9px] uppercase tracking-wider font-bold">Slave Name</span>
+                    <strong className="text-navy-950 font-bold uppercase text-[11px] truncate block">{currentUser.slaveName || 'Not Specified'}</strong>
+                  </div>
+                  <div className="p-3 bg-[#fbf9f4] rounded-none border border-navy-950/5 col-span-2">
+                    <span className="text-navy-400 block mb-0.5 text-[9px] uppercase tracking-wider font-bold">Contact Number</span>
+                    <strong className="text-navy-950 font-bold uppercase text-[11px] block">{currentUser.phone || 'Not Specified'}</strong>
                   </div>
                 </div>
               </div>
@@ -741,16 +735,16 @@ export default function MemberPortal({
                   </div>
 
                   <div className="mt-5 pt-4 border-t border-navy-950/5 text-xs space-y-2 text-navy-950/80 font-sans font-light">
-                    {item.major && (
+                    {item.chapter && (
                       <div className="flex items-center gap-2">
-                        <GraduationCap className="w-4 h-4 text-gold-600 shrink-0" />
-                        <span className="truncate"><strong>Major:</strong> {item.major}</span>
+                        <Landmark className="w-4 h-4 text-gold-600 shrink-0" />
+                        <span className="truncate"><strong>Chapter:</strong> {item.chapter}</span>
                       </div>
                     )}
-                    {item.hometown && (
+                    {item.slaveName && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gold-600 shrink-0" />
-                        <span className="truncate"><strong>Hometown:</strong> {item.hometown}</span>
+                        <Shield className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span className="truncate"><strong>Slave Name:</strong> {item.slaveName}</span>
                       </div>
                     )}
                     {item.phone && (
@@ -1185,9 +1179,8 @@ create table if not exists members (
   "joinsDate" text not null,
   "avatarUrl" text,
   phone text,
-  major text,
-  hometown text,
-  biography text
+  chapter text,
+  "slaveName" text
 );
 
 -- 2. Enable Row Level Security (RLS)
