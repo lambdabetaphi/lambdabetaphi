@@ -11,7 +11,7 @@ interface PortalAdminProps {
   onSuspendMember: (id: string) => void;
   onDeleteMember: (id: string) => void;
   onAddAnnouncement: (title: string, content: string, isPinned: boolean) => void;
-  onAddEvent: (eventData: { title: string; date: string; time: string; location: string; description: string }) => void;
+  onAddEvent: (eventData: { title: string; event_date: string; location: string; description: string }) => void;
   onDeleteAnnouncement: (id: string) => void;
   onDeleteEvent: (id: string) => void;
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
@@ -43,13 +43,12 @@ export default function PortalAdmin({
   // Input states for Event
   const [evtTitle, setEvtTitle] = useState('');
   const [evtDate, setEvtDate] = useState('');
-  const [evtTime, setEvtTime] = useState('');
   const [evtLocation, setEvtLocation] = useState('');
   const [evtDesc, setEvtDesc] = useState('');
 
   // Segregating lists
-  const pendingMembers = members.filter(m => m.role === 'Pending');
-  const activeMembers = members.filter(m => m.role !== 'Pending');
+  const pendingMembers = members.filter(m => m.status === 'Pending');
+  const activeMembers = members.filter(m => m.status !== 'Pending');
 
   const handleCreateAnnouncement = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,14 +71,12 @@ export default function PortalAdmin({
     }
     onAddEvent({
       title: evtTitle.trim(),
-      date: evtDate,
-      time: evtTime.trim() || '18:00',
+      event_date: evtDate,
       location: evtLocation.trim(),
       description: evtDesc.trim()
     });
     setEvtTitle('');
     setEvtDate('');
-    setEvtTime('');
     setEvtLocation('');
     setEvtDesc('');
     showToast('New event cataloged on community calendar.', 'success');
@@ -173,16 +170,16 @@ export default function PortalAdmin({
                   <div key={user.id} className="p-3.5 bg-[#fbf9f4] border border-[#c5a059]/15 rounded-xl flex flex-col md:flex-row items-center gap-4 justify-between">
                     <div className="flex items-center gap-3 w-full md:w-auto text-left">
                       <img 
-                        src={user.avatarUrl} 
+                        src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
                         alt="" 
                         className="w-11 h-11 object-cover rounded-full border border-[#c5a059]/30 shadow-sm shrink-0"
                         referrerPolicy="no-referrer"
                       />
                       <div className="min-w-0">
-                        <p className="font-bold text-navy-950 uppercase text-xs truncate leading-tight">{user.name}</p>
-                        <p className="text-[9.5px] text-rose-600 font-mono font-bold uppercase mt-0.5">SLAVE: {user.slaveName}</p>
+                        <p className="font-bold text-navy-950 uppercase text-xs truncate leading-tight">{user.full_name}</p>
+                        <p className="text-[9.5px] text-rose-600 font-mono font-bold uppercase mt-0.5">ROLE: {user.role}</p>
                         <p className="text-[9px] text-navy-500 font-mono mt-0.5 truncate uppercase">
-                          {user.chapter} &bull; {user.batch} &bull; {user.phone}
+                          {user.chapter || 'No Chapter'} &bull; {user.batch || 'No Batch'} &bull; {user.phone || 'No Phone'}
                         </p>
                       </div>
                     </div>
@@ -230,20 +227,20 @@ export default function PortalAdmin({
                 <div key={user.id} className="p-3 bg-white border border-navy-950/5 rounded-xl flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 text-left min-w-0">
                     <img 
-                      src={user.avatarUrl} 
+                      src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
                       alt="" 
                       className="w-9 h-9 rounded-full object-cover border border-navy-950/10 shrink-0"
                       referrerPolicy="no-referrer"
                     />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 leading-tight">
-                        <p className="font-bold text-navy-950 text-xs truncate uppercase">{user.name}</p>
+                        <p className="font-bold text-navy-950 text-xs truncate uppercase">{user.full_name}</p>
                         <span className="text-[8px] font-mono font-bold uppercase tracking-wider bg-[#fbf9f4] border border-[#c5a059]/20 text-[#c5a059] px-1 rounded">
                           {user.role}
                         </span>
                       </div>
                       <p className="text-[9px] text-navy-400 mt-0.5 truncate uppercase">
-                        SLAVE: <span className="font-mono text-rose-600 font-bold">{user.slaveName}</span> &bull; {user.chapter} &bull; {user.batch}
+                        STATUS: <span className="font-mono text-gold-600 font-bold">{user.status}</span> &bull; {user.chapter || 'No Chapter'} &bull; {user.batch || 'No Batch'}
                       </p>
                     </div>
                   </div>
@@ -337,7 +334,7 @@ export default function PortalAdmin({
                     <div>
                       <p className="font-bold text-navy-950">{ann.title}</p>
                       <p className="text-[8.5px] text-navy-400 font-mono mt-0.5">
-                        BY: {ann.author_name} &bull; {new Date(ann.created_at).toLocaleDateString()}
+                        BY: {members.find(m => m.id === ann.created_by)?.full_name || 'Administrator'} &bull; {new Date(ann.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <button
@@ -379,10 +376,10 @@ export default function PortalAdmin({
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                    Date of Assembly
+                    Date & Time of Assembly
                   </label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     required
                     value={evtDate}
                     onChange={(e) => setEvtDate(e.target.value)}
@@ -391,32 +388,18 @@ export default function PortalAdmin({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                    Assembly Time
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 19:30 PM"
-                    value={evtTime}
-                    onChange={(e) => setEvtTime(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                    Physical Location
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Grand Ceremonial Hall"
-                    value={evtLocation}
-                    onChange={(e) => setEvtLocation(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                  />
-                </div>
+              <div>
+                <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
+                  Physical Location
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Grand Ceremonial Hall"
+                  value={evtLocation}
+                  onChange={(e) => setEvtLocation(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                />
               </div>
 
               <div>
@@ -448,7 +431,7 @@ export default function PortalAdmin({
                     <div>
                       <p className="font-bold text-navy-950">{e.title}</p>
                       <p className="text-[8.5px] text-navy-400 font-mono mt-0.5">
-                        DATE: {e.date} &bull; LOC: {e.location} &bull; RSVPS: {e.rsvps.length}
+                        DATE: {e.event_date} &bull; LOC: {e.location} &bull; RSVPS: {e.rsvps?.length || 0}
                       </p>
                     </div>
                     <button

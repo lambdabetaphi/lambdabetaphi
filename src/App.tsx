@@ -20,15 +20,10 @@ import NewsPage from './components/NewsPage';
 import EventPage from './components/EventPage';
 import MemberPortal from './components/MemberPortal';
 import CrestLogo from './components/CrestLogo';
-import { Member, Event, NewsItem, BulletinPost } from './types';
-import { 
-  INITIAL_MEMBERS, 
-  INITIAL_EVENTS, 
-  INITIAL_NEWS, 
-  INITIAL_BULLETIN, 
-  FRAT_INFO 
-} from './data';
+import { Member, Event, Announcement } from './types';
+import { FRAT_INFO } from './data';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { dbService } from './lib/dbService';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'about' | 'news' | 'events' | 'portal'>('home');
@@ -40,109 +35,43 @@ export default function App() {
   // Core Persisted States
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [bulletin, setBulletin] = useState<BulletinPost[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  // 1. Initial State Loading from LocalStorage or Data.ts
+  // 1. Initial State Loading from Supabase or Fallback
   useEffect(() => {
-    const cachedEvents = localStorage.getItem('lbp_events');
-    const cachedNews = localStorage.getItem('lbp_news');
-    const cachedBulletin = localStorage.getItem('lbp_bulletin');
     const cachedUser = localStorage.getItem('lbp_current_user');
-
-    if (cachedEvents) setEvents(JSON.parse(cachedEvents));
-    else {
-      setEvents(INITIAL_EVENTS);
-      localStorage.setItem('lbp_events', JSON.stringify(INITIAL_EVENTS));
-    }
-
-    if (cachedNews) setNews(JSON.parse(cachedNews));
-    else {
-      setNews(INITIAL_NEWS);
-      localStorage.setItem('lbp_news', JSON.stringify(INITIAL_NEWS));
-    }
-
-    if (cachedBulletin) setBulletin(JSON.parse(cachedBulletin));
-    else {
-      setBulletin(INITIAL_BULLETIN);
-      localStorage.setItem('lbp_bulletin', JSON.stringify(INITIAL_BULLETIN));
-    }
-
     if (cachedUser) {
       setCurrentUser(JSON.parse(cachedUser));
     }
 
-    // Load members from Supabase (with fallback to local storage)
-    const loadMembersData = async () => {
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const { data, error } = await supabase.from('members').select('*');
-          if (error) {
-            console.warn('Could not query Supabase members table (using local fallback):', error.message);
-            loadLocalMembers();
-          } else if (data && data.length > 0) {
-            // Sort by numerical/alphabetical IDs to maintain order
-            const sorted = [...data].sort((a, b) => a.id.localeCompare(b.id));
-            setMembers(sorted as Member[]);
-          } else {
-            // Seed the Supabase table with initial members
-            const { error: seedError } = await supabase.from('members').insert(INITIAL_MEMBERS);
-            if (seedError) {
-              console.warn('Seeding Supabase members failed:', seedError.message);
-            }
-            setMembers(INITIAL_MEMBERS);
-          }
-        } catch (e) {
-          console.warn('Supabase loading error (using local fallback):', e);
-          loadLocalMembers();
-        }
-      } else {
-        loadLocalMembers();
+    const loadAllData = async () => {
+      try {
+        const dbMembers = await dbService.getMembers();
+        setMembers(dbMembers);
+
+        const dbEvents = await dbService.getEvents();
+        setEvents(dbEvents);
+
+        const dbAnns = await dbService.getAnnouncements();
+        setAnnouncements(dbAnns);
+      } catch (e) {
+        console.warn('Error loading initial data in App.tsx:', e);
       }
     };
 
-    const loadLocalMembers = () => {
-      const cachedMembers = localStorage.getItem('lbp_members');
-      if (cachedMembers) setMembers(JSON.parse(cachedMembers));
-      else {
-        setMembers(INITIAL_MEMBERS);
-        localStorage.setItem('lbp_members', JSON.stringify(INITIAL_MEMBERS));
-      }
-    };
-
-    loadMembersData();
+    loadAllData();
   }, []);
 
   // 2. State Synchronizers
   const saveMembers = async (newMembers: Member[]) => {
     setMembers(newMembers);
-    localStorage.setItem('lbp_members', JSON.stringify(newMembers));
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase.from('members').upsert(newMembers);
-        if (error) {
-          console.warn('Failed to upsert to Supabase database (will stay local):', error.message);
-        }
-      } catch (err) {
-        console.warn('Supabase sync skipped/failed:', err);
-      }
-    }
+    await dbService.saveMembers(newMembers);
   };
 
-  const saveEvents = (newEvents: Event[]) => {
+  const saveEvents = async (newEvents: Event[]) => {
     setEvents(newEvents);
-    localStorage.setItem('lbp_events', JSON.stringify(newEvents));
-  };
-
-  const saveNews = (newNews: NewsItem[]) => {
-    setNews(newNews);
-    localStorage.setItem('lbp_news', JSON.stringify(newNews));
-  };
-
-  const saveBulletin = (newBulletin: BulletinPost[]) => {
-    setBulletin(newBulletin);
-    localStorage.setItem('lbp_bulletin', JSON.stringify(newBulletin));
+    // Persist list
+    localStorage.setItem('lbp_prod_events', JSON.stringify(newEvents));
   };
 
   // Toast trigger helper
@@ -186,7 +115,7 @@ export default function App() {
           if (localMatched) {
             setCurrentUser(localMatched);
             localStorage.setItem('lbp_current_user', JSON.stringify(localMatched));
-            showToast(`Successfully logged in! Welcome ${localMatched.name}.`, 'success');
+            showToast(`Successfully logged in! Welcome ${localMatched.full_name}.`, 'success');
             setActiveTab('portal');
             return true;
           } else {
@@ -206,8 +135,8 @@ export default function App() {
         localStorage.setItem('lbp_current_user', JSON.stringify(memberProfile));
         showToast(
           memberProfile.role === 'Admin'
-            ? `Welcome back, Administrator ${memberProfile.name}!`
-            : `Welcome back, Initiate ${memberProfile.name}!`,
+            ? `Welcome back, Administrator ${memberProfile.full_name}!`
+            : `Welcome back, Initiate ${memberProfile.full_name}!`,
           'success'
         );
         setActiveTab('portal');
@@ -229,9 +158,9 @@ export default function App() {
       setCurrentUser(matched);
       localStorage.setItem('lbp_current_user', JSON.stringify(matched));
       if (matched.role === 'Admin') {
-        showToast(`Welcome back, Administrator ${matched.name}!`, 'success');
+        showToast(`Welcome back, Administrator ${matched.full_name}!`, 'success');
       } else {
-        showToast(`Welcome back, Initiate ${matched.name}!`, 'success');
+        showToast(`Welcome back, Initiate ${matched.full_name}!`, 'success');
       }
       setActiveTab('portal');
       return true;
@@ -254,7 +183,7 @@ export default function App() {
   };
 
   const handleRegister = async (
-    newMemberData: Omit<Member, 'id' | 'chapterPoints' | 'duesStatus' | 'duesAmount'>,
+    newMemberData: Omit<Member, 'id'>,
     password?: string
   ) => {
     const emailLower = newMemberData.email.toLowerCase().trim();
@@ -282,10 +211,8 @@ export default function App() {
         const newMember: Member = {
           ...newMemberData,
           id: userId,
-          role: isMe ? 'Admin' : 'User',
-          chapterPoints: isMe ? 500 : 10, // Starting bonus points!
-          duesStatus: isMe ? 'Paid' : 'Unpaid',
-          duesAmount: 350
+          role: isMe ? 'Admin' : 'Member',
+          status: isMe ? 'Approved' : 'Pending'
         };
 
         // Write profile details to the members table
@@ -322,10 +249,8 @@ export default function App() {
     const newMember: Member = {
       ...newMemberData,
       id: `m${members.length + 1}`,
-      role: isMe ? 'Admin' : 'User',
-      chapterPoints: isMe ? 500 : 10, // Starting bonus points!
-      duesStatus: isMe ? 'Paid' : 'Unpaid',
-      duesAmount: 350
+      role: isMe ? 'Admin' : 'Member',
+      status: isMe ? 'Approved' : 'Pending'
     };
 
     const updated = [...members, newMember];
@@ -341,212 +266,34 @@ export default function App() {
     }
   };
 
-  const handlePayDues = (memberId: string) => {
-    const updatedMembers = members.map(m => {
-      if (m.id === memberId) {
-        return { ...m, duesStatus: 'Paid' as const, chapterPoints: m.chapterPoints + 15 }; // award chapter points for payment!
-      }
-      return m;
-    });
-    saveMembers(updatedMembers);
-
-    // Update session
-    const updatedMe = updatedMembers.find(m => m.id === memberId);
-    if (updatedMe) {
-      setCurrentUser(updatedMe);
-      localStorage.setItem('lbp_current_user', JSON.stringify(updatedMe));
-    }
-    showToast('Dues received. Thank you for supporting chapter activities! (+15 Pts)', 'success');
-  };
-
   // 4. RSVP Event Interactions
-  const handleRsvpEvent = (eventId: string) => {
+  const handleRsvpEvent = async (eventId: string) => {
     if (!currentUser) {
       showToast('Please sign in to RSVP.', 'error');
       return;
     }
-
-    const updatedEvents = events.map(e => {
-      if (e.id === eventId) {
-        const alreadyRsvpd = e.rsvps.includes(currentUser.email);
-        const newRsvps = alreadyRsvpd 
-          ? e.rsvps.filter(email => email !== currentUser.email)
-          : [...e.rsvps, currentUser.email];
-        
-        // Adjust current user points in database
-        const pointChange = alreadyRsvpd ? -10 : 10;
-        const updatedMembers = members.map(m => {
-          if (m.id === currentUser.id) {
-            return { ...m, chapterPoints: Math.max(m.chapterPoints + pointChange, 0) };
-          }
-          return m;
-        });
-        saveMembers(updatedMembers);
-
-        // Update active session user
-        const updatedMe = updatedMembers.find(m => m.id === currentUser.id);
-        if (updatedMe) {
-          setCurrentUser(updatedMe);
-          localStorage.setItem('lbp_current_user', JSON.stringify(updatedMe));
-        }
-
-        showToast(
-          alreadyRsvpd 
-            ? 'Your RSVP has been retracted. (-10 Pts)' 
-            : 'Ticket secured! RSVP Approved. (+10 Pts)', 
-          alreadyRsvpd ? 'info' : 'success'
-        );
-
-        return { ...e, rsvps: newRsvps };
+    try {
+      const updatedEvent = await dbService.rsvpEvent(eventId, currentUser.id);
+      if (updatedEvent) {
+        const dbEvents = await dbService.getEvents();
+        setEvents(dbEvents);
+        showToast('Your RSVP status was successfully updated.', 'success');
       }
-      return e;
-    });
-    saveEvents(updatedEvents);
-  };
-
-  const handlePublishEvent = (newEventData: Omit<Event, 'id' | 'rsvps'>) => {
-    if (!currentUser) return;
-    const newEvent: Event = {
-      ...newEventData,
-      id: `e${events.length + 1}`,
-      rsvps: [currentUser.email] // Owner automatically RSVPs!
-    };
-    
-    const updatedEvents = [newEvent, ...events];
-    saveEvents(updatedEvents);
-
-    // Reward points for scheduling events!
-    const updatedMembers = members.map(m => {
-      if (m.id === currentUser.id) {
-        return { ...m, chapterPoints: m.chapterPoints + 20 };
-      }
-      return m;
-    });
-    saveMembers(updatedMembers);
-    const updatedMe = updatedMembers.find(m => m.id === currentUser.id);
-    if (updatedMe) {
-      setCurrentUser(updatedMe);
-      localStorage.setItem('lbp_current_user', JSON.stringify(updatedMe));
+    } catch (e) {
+      showToast('Failed to process RSVP request.', 'error');
     }
-
-    showToast('New event scheduled and broadcasted! (+20 Pts)', 'success');
   };
 
-  // 5. News Likes and Comments
-  const handleLikeNews = (newsId: string) => {
-    if (!currentUser) {
-      showToast('Please sign in to like articles.', 'error');
-      return;
+  const handlePublishEvent = async (newEventData: Omit<Event, 'id' | 'rsvps'>) => {
+    if (!currentUser) return;
+    try {
+      await dbService.createEvent(newEventData);
+      const dbEvents = await dbService.getEvents();
+      setEvents(dbEvents);
+      showToast('New assembly scheduled and broadcasted!', 'success');
+    } catch (e) {
+      showToast('Failed to schedule chapter assembly.', 'error');
     }
-
-    const updatedNews = news.map(item => {
-      if (item.id === newsId) {
-        const liked = item.likedBy.includes(currentUser.email);
-        const newLikes = liked ? item.likes - 1 : item.likes + 1;
-        const newLikedBy = liked 
-          ? item.likedBy.filter(email => email !== currentUser.email)
-          : [...item.likedBy, currentUser.email];
-
-        return { ...item, likes: newLikes, likedBy: newLikedBy };
-      }
-      return item;
-    });
-    saveNews(updatedNews);
-  };
-
-  const handleAddComment = (newsId: string, commentContent: string) => {
-    if (!currentUser) return;
-    
-    const newComment = {
-      id: `c${Date.now()}`,
-      authorName: currentUser.name,
-      authorRole: currentUser.role,
-      content: commentContent,
-      date: new Date().toISOString().split('T')[0]
-    };
-
-    const updatedNews = news.map(item => {
-      if (item.id === newsId) {
-        return { ...item, comments: [...item.comments, newComment] };
-      }
-      return item;
-    });
-    saveNews(updatedNews);
-    showToast('Comment published successfully.', 'success');
-  };
-
-  const handlePublishNews = (newItemData: Omit<NewsItem, 'id' | 'likes' | 'likedBy' | 'comments'>) => {
-    const newItem: NewsItem = {
-      ...newItemData,
-      id: `n${news.length + 1}`,
-      likes: 0,
-      likedBy: [],
-      comments: []
-    };
-
-    const updatedNews = [newItem, ...news];
-    saveNews(updatedNews);
-
-    // Award points
-    const updatedMembers = members.map(m => {
-      if (m.id === currentUser?.id) {
-        return { ...m, chapterPoints: m.chapterPoints + 15 };
-      }
-      return m;
-    });
-    saveMembers(updatedMembers);
-    const updatedMe = updatedMembers.find(m => m.id === currentUser?.id);
-    if (updatedMe) {
-      setCurrentUser(updatedMe);
-      localStorage.setItem('lbp_current_user', JSON.stringify(updatedMe));
-    }
-
-    showToast('Announcement published to chapter newsfeed! (+15 Pts)', 'success');
-  };
-
-  // 6. Bulletin Message Board interactions
-  const handleAddBulletinPost = (content: string) => {
-    if (!currentUser) return;
-
-    const newPost: BulletinPost = {
-      id: `bp${bulletin.length + 1}`,
-      authorName: currentUser.name,
-      authorRole: currentUser.role,
-      authorAvatar: currentUser.avatarUrl,
-      content,
-      date: new Date().toISOString().split('T')[0],
-      likes: 0,
-      likedBy: [],
-      replies: []
-    };
-
-    const updated = [newPost, ...bulletin];
-    saveBulletin(updated);
-    showToast('Notice broadcasted to the chapter.', 'success');
-  };
-
-  const handleAddBulletinReply = (postId: string, content: string) => {
-    if (!currentUser) return;
-
-    const updated = bulletin.map(post => {
-      if (post.id === postId) {
-        const newReply: any = {
-          id: `br${Date.now()}`,
-          authorName: currentUser.name,
-          authorRole: currentUser.role,
-          authorAvatar: currentUser.avatarUrl,
-          content,
-          date: new Date().toISOString().split('T')[0]
-        };
-        return {
-          ...post,
-          replies: [...post.replies, newReply]
-        };
-      }
-      return post;
-    });
-    saveBulletin(updated);
-    showToast('Reply published.', 'success');
   };
 
   // Helper page renderer
@@ -559,11 +306,9 @@ export default function App() {
       case 'news':
         return (
           <NewsPage 
-            news={news} 
+            announcements={announcements} 
             currentUser={currentUser}
-            onLikeNews={handleLikeNews}
-            onAddComment={handleAddComment}
-            onPublishNews={handlePublishNews}
+            members={members}
           />
         );
       case 'events':

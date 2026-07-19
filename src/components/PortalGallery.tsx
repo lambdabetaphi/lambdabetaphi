@@ -81,7 +81,7 @@ export default function PortalGallery({ gallery, currentUser, onAddGalleryItem, 
       album: targetAlbum,
       image_url: uploadImage,
       caption: uploadCaption.trim() || undefined,
-      uploaded_by_name: currentUser.name
+      uploaded_by_name: currentUser.full_name
     });
 
     setUploadImage('');

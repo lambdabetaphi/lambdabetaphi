@@ -3,7 +3,7 @@ import {
   Shield, Lock, User, Mail, Search, Award, CheckCircle, MessageSquare, Send, 
   Phone, MapPin, Crown, Settings, Trash2, Plus, X, Upload, Image, Bell, BookOpen, 
   Users, FolderOpen, Calendar, Volume2, LogOut, ChevronRight, Menu, HelpCircle, 
-  Activity, Clock, Compass, Info, AlertCircle, ExternalLink 
+  Activity, Clock, Compass, Info, AlertCircle, ExternalLink, Database, Copy
 } from 'lucide-react';
 
 import { Member, Post, Comment, Announcement, Event, Notification, GalleryItem } from '../types';
@@ -56,6 +56,30 @@ export default function MemberPortal({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  // Live Supabase Diagnostics & Provision States
+  const [tableStatuses, setTableStatuses] = useState<Record<string, boolean>>({});
+  const [isCheckingTables, setIsCheckingTables] = useState(false);
+  const [isProvisioning, setIsProvisioning] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
+
+  const handleCheckTables = async () => {
+    setIsCheckingTables(true);
+    try {
+      const statuses = await dbService.checkAllTables();
+      setTableStatuses(statuses);
+    } catch (e) {
+      console.error('Error diagnostic tables:', e);
+    } finally {
+      setIsCheckingTables(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      handleCheckTables();
+    }
+  }, [activeTab]);
 
   // Synchronize state with initial props
   useEffect(() => {
@@ -140,11 +164,7 @@ export default function MemberPortal({
     if (!currentUser) return;
     try {
       const newPost = await dbService.createPost({
-        author_id: currentUser.id,
-        author_name: currentUser.name,
-        author_avatar: currentUser.avatarUrl,
-        author_chapter: currentUser.chapter,
-        author_slave_name: currentUser.slaveName,
+        member_id: currentUser.id,
         content,
         images
       });
@@ -178,10 +198,8 @@ export default function MemberPortal({
     try {
       const newComment = await dbService.addComment({
         post_id: postId,
-        author_id: currentUser.id,
-        author_name: currentUser.name,
-        author_avatar: currentUser.avatarUrl,
-        content
+        member_id: currentUser.id,
+        comment: content
       });
 
       setComments(prev => [...prev, newComment]);
@@ -201,7 +219,7 @@ export default function MemberPortal({
       const updated = {
         ...target,
         role: 'Member' as const,
-        joinsDate: new Date().toISOString().split('T')[0]
+        status: 'Approved' as const
       };
 
       const updatedList = localMembers.map(m => m.id === id ? updated : m);
@@ -209,13 +227,12 @@ export default function MemberPortal({
 
       // Create confirmation notification
       await dbService.createNotification({
-        type: 'new_member',
+        member_id: updated.id,
         title: 'Registry Sealed',
-        content: `Applicant ${updated.name} (Slave: ${updated.slaveName}) has been officially verified and admitted.`,
-        reference_id: updated.id
+        message: `Applicant ${updated.full_name} has been officially verified and admitted.`,
       });
 
-      showToast(`Approved applicant ${updated.name}. Welcome to the registry!`, 'success');
+      showToast(`Approved applicant ${updated.full_name}. Welcome to the registry!`, 'success');
       
       // Reload states
       const dbNotifs = await dbService.getNotifications();
@@ -242,12 +259,12 @@ export default function MemberPortal({
 
       const updated = {
         ...target,
-        role: 'Pending' as const
+        status: 'Suspended' as const
       };
 
       const updatedList = localMembers.map(m => m.id === id ? updated : m);
       await updateMembersState(updatedList);
-      showToast(`Suspended active access for member ${target.name}.`, 'info');
+      showToast(`Suspended active access for member ${target.full_name}.`, 'info');
     } catch (e) {
       showToast('Admin suspension failed.', 'error');
     }
@@ -269,8 +286,7 @@ export default function MemberPortal({
       const newAnn = await dbService.createAnnouncement({
         title,
         content,
-        author_name: currentUser.name,
-        author_avatar: currentUser.avatarUrl,
+        created_by: currentUser.id,
         is_pinned: isPinned
       });
 
@@ -294,14 +310,15 @@ export default function MemberPortal({
     }
   };
 
-  const handleAddEvent = async (evt: { title: string; date: string; time: string; location: string; description: string }) => {
+  const handleAddEvent = async (evt: { title: string; event_date: string; location: string; description: string }) => {
     if (!currentUser) return;
     try {
       const newEvt = await dbService.createEvent({
-        ...evt,
-        category: 'Assembly',
-        created_by: currentUser.id,
-        image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80'
+        title: evt.title,
+        description: evt.description,
+        location: evt.location,
+        event_date: evt.event_date,
+        created_by: currentUser.id
       });
 
       setEvents(prev => [...prev, newEvt]);
@@ -972,66 +989,304 @@ export default function MemberPortal({
           {/* SETTINGS AND DATABASE STATUS */}
           {activeTab === 'settings' && (
             <div className="space-y-4 text-left">
-              <div className="bg-white rounded-2xl p-4 border border-navy-950/5">
-                <h3 className="font-serif font-black text-navy-950 text-base uppercase tracking-wide flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-[#c5a059]" />
-                  Customization & Databases
-                </h3>
-                <p className="text-[10px] text-navy-400 uppercase tracking-widest font-semibold mt-0.5">Portal Configuration Services</p>
+              <div className="bg-white rounded-2xl p-4 border border-navy-950/5 flex justify-between items-center">
+                <div>
+                  <h3 className="font-serif font-black text-navy-950 text-base uppercase tracking-wide flex items-center gap-2">
+                    <Database className="w-5 h-5 text-[#c5a059]" />
+                    Sovereign Cloud & Databases
+                  </h3>
+                  <p className="text-[10px] text-navy-400 uppercase tracking-widest font-semibold mt-0.5">Supabase Real-Time Diagnostics & Schema Provisioner</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    await handleCheckTables();
+                    await loadAllDatabaseStates();
+                    showToast('Database diagnostics refreshed.', 'success');
+                  }}
+                  disabled={isCheckingTables}
+                  className="px-3.5 py-1.5 border border-navy-950/10 text-navy-950 text-[9.5px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-50 transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                >
+                  <Activity className={`w-3.5 h-3.5 ${isCheckingTables ? 'animate-pulse' : ''}`} />
+                  {isCheckingTables ? 'Scanning...' : 'Scan DB'}
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
                 
-                {/* Database state */}
-                <div className="bg-white rounded-2xl p-5 border border-navy-950/5 space-y-4 flex flex-col justify-between">
-                  <div>
-                    <h4 className="font-serif font-black text-navy-950 uppercase tracking-wider text-[11px] border-b border-navy-950/5 pb-2">
-                      Supabase Cloud Connectivity
+                {/* Left column: Database status and diagnostic list (5 cols) */}
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="bg-white rounded-2xl p-5 border border-navy-950/5 space-y-4">
+                    <h4 className="font-serif font-black text-navy-950 uppercase tracking-wider text-[11px] border-b border-navy-950/5 pb-2 flex justify-between items-center">
+                      <span>Connection Integrity</span>
+                      <span className={`h-2.5 w-2.5 rounded-full ${Object.keys(tableStatuses).length > 0 && Object.values(tableStatuses).every(Boolean) ? 'bg-emerald-500 animate-pulse' : 'bg-gold-500 animate-pulse'}`}></span>
                     </h4>
-                    <p className="text-[11px] text-navy-500 leading-relaxed mt-2">
-                      The portal queries database tables in real-time. If credentials aren't initialized, a robust fallback engine manages local changes securely inside your local container sandbox.
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between p-2.5 bg-navy-50/50 rounded-xl">
+                        <span className="font-bold text-navy-500 uppercase text-[9.5px]">Local Sandbox Engine</span>
+                        <span className="font-mono text-[10px] text-emerald-600 font-bold uppercase">ONLINE (FALLBACK READY)</span>
+                      </div>
+                      <div className="flex justify-between p-2.5 bg-navy-50/50 rounded-xl">
+                        <span className="font-bold text-navy-500 uppercase text-[9.5px]">Supabase Env Variables</span>
+                        <span className="font-mono text-[10px] font-bold uppercase">
+                          {Object.keys(tableStatuses).length > 0 ? (
+                            <span className="text-emerald-600">CONFIGURED</span>
+                          ) : (
+                            <span className="text-amber-600">CHECKING ENVS...</span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <p className="font-bold text-navy-950 uppercase tracking-widest text-[9.5px] mb-2.5">Live Database Table Diagnostics</p>
+                      
+                      {['members', 'posts', 'comments', 'announcements', 'events', 'notifications', 'gallery'].map((table) => {
+                        const exists = tableStatuses[table];
+                        return (
+                          <div key={table} className="flex justify-between items-center py-2 px-3 bg-[#fbf9f4] border border-navy-950/5 rounded-xl">
+                            <span className="font-mono text-xs text-navy-600 font-bold uppercase">&bull; {table}</span>
+                            <span className="flex items-center gap-1 text-[9.5px] font-bold uppercase font-mono">
+                              {isCheckingTables ? (
+                                <span className="text-navy-400 animate-pulse">CHECKING...</span>
+                              ) : exists ? (
+                                <span className="text-emerald-600 flex items-center gap-1">
+                                  <CheckCircle className="w-3.5 h-3.5" /> LIVE
+                                </span>
+                              ) : (
+                                <span className="text-rose-600 flex items-center gap-1">
+                                  <AlertCircle className="w-3.5 h-3.5" /> MISSING
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right column: DB Provisioner wizard (7 cols) */}
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="bg-white rounded-2xl p-5 border border-navy-950/5 space-y-4">
+                    <h4 className="font-serif font-black text-navy-950 uppercase tracking-wider text-[11px] border-b border-navy-950/5 pb-2">
+                      Sovereign Ledger Provisioner
+                    </h4>
+                    
+                    <p className="text-[11px] text-navy-500 leading-relaxed">
+                      To synchronize this application with live data, your Supabase project must be initialized with the core chapter schema tables. You can use our automated script or execute the SQL queries directly.
                     </p>
 
-                    <div className="mt-4 p-3 bg-[#fbf9f4] border border-[#c5a059]/25 rounded-xl space-y-1 text-[10px] text-navy-500 font-mono uppercase">
-                      <p className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                        LOCAL PERSISTENCE: ONLINE
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-gold-500"></span>
-                        SUPABASE CONNECTION: AUTODETECTING
-                      </p>
-                      <p className="text-[8px] text-navy-400 mt-2 font-sans lowercase">
-                        * Environment values are mapped securely inside `.env` configuration.
-                      </p>
+                    {provisionError && (
+                      <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs space-y-1">
+                        <p className="font-bold uppercase tracking-wider text-[9px]">Provision Warning</p>
+                        <p className="font-mono text-[10px] leading-relaxed">{provisionError}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                      {/* Provision option 1: Auto RPC */}
+                      <div className="border border-navy-950/5 rounded-xl p-4 bg-[#fbf9f4] flex flex-col justify-between space-y-4">
+                        <div>
+                          <p className="font-bold text-navy-950 uppercase text-[10px] tracking-wider">Method A: Programmatic RPC</p>
+                          <p className="text-[10px] text-navy-400 leading-relaxed mt-1">
+                            Attempts to run the SQL migration query via the built-in PostgreSQL <code className="font-mono text-amber-700">exec_sql</code> function.
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            setIsProvisioning(true);
+                            setProvisionError(null);
+                            try {
+                              const res = await dbService.autoProvision();
+                              if (res.success) {
+                                showToast('Tables provisioned successfully!', 'success');
+                                handleCheckTables();
+                                loadAllDatabaseStates();
+                              } else {
+                                setProvisionError(res.error || 'Auto-provision returned error.');
+                              }
+                            } catch (e: any) {
+                              setProvisionError(e.message || 'Error occurred during auto-provision.');
+                            } finally {
+                              setIsProvisioning(false);
+                            }
+                          }}
+                          disabled={isProvisioning}
+                          className="w-full py-2 bg-navy-950 text-gold-500 text-[9.5px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-900 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {isProvisioning ? 'PROVISIONING...' : 'RUN AUTO-PROVISION'}
+                        </button>
+                      </div>
+
+                      {/* Provision option 2: Clipboard Copy */}
+                      <div className="border border-navy-950/5 rounded-xl p-4 bg-[#fbf9f4] flex flex-col justify-between space-y-4">
+                        <div>
+                          <p className="font-bold text-navy-950 uppercase text-[10px] tracking-wider">Method B: Direct Dashboard SQL</p>
+                          <p className="text-[10px] text-navy-400 leading-relaxed mt-1">
+                            Copies the entire database schema to your clipboard so you can paste it directly inside the Supabase SQL editor. Recommended!
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const sqlContent = `
+-- LAMBDA BETA PHI SUPABASE SCHEMA
+-- Run this in your SQL Editor inside the Supabase dashboard!
+CREATE TABLE IF NOT EXISTS public.members (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL DEFAULT 'User',
+    gender TEXT,
+    chapter TEXT NOT NULL,
+    batch TEXT,
+    position TEXT,
+    "joinsDate" TEXT,
+    "avatarUrl" TEXT,
+    phone TEXT,
+    "slaveName" TEXT,
+    birthday TEXT,
+    "isOnline" BOOLEAN DEFAULT false,
+    "chapterPoints" INTEGER DEFAULT 0,
+    "duesStatus" TEXT DEFAULT 'Unpaid',
+    "duesAmount" NUMERIC DEFAULT 0,
+    major TEXT,
+    hometown TEXT,
+    biography TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+CREATE TABLE IF NOT EXISTS public.posts (
+    id TEXT PRIMARY KEY,
+    author_id TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+    author_name TEXT NOT NULL,
+    author_avatar TEXT,
+    author_chapter TEXT,
+    author_slave_name TEXT,
+    content TEXT NOT NULL,
+    images TEXT[] DEFAULT '{}'::TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    likes_count INTEGER DEFAULT 0,
+    liked_by TEXT[] DEFAULT '{}'::TEXT[]
+);
+CREATE TABLE IF NOT EXISTS public.comments (
+    id TEXT PRIMARY KEY,
+    post_id TEXT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    author_id TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+    author_name TEXT NOT NULL,
+    author_avatar TEXT,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+CREATE TABLE IF NOT EXISTS public.announcements (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    author_name TEXT NOT NULL,
+    author_avatar TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    is_pinned BOOLEAN DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS public.events (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    location TEXT NOT NULL,
+    image TEXT,
+    category TEXT NOT NULL,
+    created_by TEXT,
+    rsvps TEXT[] DEFAULT '{}'::TEXT[],
+    capacity INTEGER,
+    highlights TEXT
+);
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    reference_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    is_read BOOLEAN DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS public.gallery (
+    id TEXT PRIMARY KEY,
+    album TEXT NOT NULL,
+    url TEXT,
+    image_url TEXT,
+    description TEXT,
+    caption TEXT,
+    uploaded_by TEXT,
+    uploaded_by_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+-- Seed default Roderick admin account
+INSERT INTO public.members (id, name, email, role, gender, chapter, batch, position, "joinsDate", "avatarUrl", phone, "slaveName", birthday, "isOnline", "chapterPoints", "duesStatus", "duesAmount")
+VALUES ('m1', 'Roderick Danzing', 'roderickdanzing04@gmail.com', 'Admin', 'Brother', 'Supreme Archon Chapter', 'Alpha Class 2022', 'Supreme Commander', '2022-01-15', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', '0917-555-0123', 'System Architect', '2004-07-20', true, 500, 'Paid', 0)
+ON CONFLICT (id) DO NOTHING;
+`;
+                            navigator.clipboard.writeText(sqlContent);
+                            showToast('Supabase SQL schema copied to clipboard!', 'success');
+                          }}
+                          className="w-full py-2 bg-navy-950 text-gold-500 text-[9.5px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-900 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          COPY SQL SCHEMA
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <p className="font-bold text-navy-950 uppercase text-[9px] tracking-wider">Dashboard Deployment Quick Links</p>
+                      <div className="flex flex-wrap gap-2.5 mt-2 text-[10px]">
+                        <a 
+                          href="https://supabase.com/dashboard/project/_/sql" 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-[#c5a059] hover:underline flex items-center gap-0.5"
+                        >
+                          SQL Editor <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <span className="text-navy-300">|</span>
+                        <a 
+                          href="https://supabase.com/dashboard/project/_/storage/buckets" 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-[#c5a059] hover:underline flex items-center gap-0.5"
+                        >
+                          Storage Buckets <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <span className="text-navy-300">|</span>
+                        <a 
+                          href="https://supabase.com/dashboard/project/_/settings/api" 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-[#c5a059] hover:underline flex items-center gap-0.5"
+                        >
+                          API Keys Dashboard <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      loadAllDatabaseStates();
-                      showToast('Database synchronization complete.', 'success');
-                    }}
-                    className="w-full py-2.5 bg-navy-950 text-gold-500 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-900 transition-colors cursor-pointer"
-                  >
-                    Sync Live Database
-                  </button>
-                </div>
+                  {/* Credential Dossier */}
+                  <div className="bg-white rounded-2xl p-5 border border-navy-950/5 space-y-3">
+                    <h4 className="font-serif font-black text-navy-950 uppercase tracking-wider text-[11px] border-b border-navy-950/5 pb-2">
+                      Active Session & Terminal Information
+                    </h4>
+                    <p className="text-[11px] text-navy-500 leading-relaxed">
+                      You are authenticated on this client with administrative privileges. To initialize tables via terminal, execute the following command in your repository terminal:
+                    </p>
+                    <div className="p-3 bg-navy-950 text-gold-400 font-mono text-[10.5px] rounded-xl flex justify-between items-center select-all">
+                      <code>npm run db:init</code>
+                      <span className="text-[8px] uppercase font-sans text-navy-400 font-semibold bg-navy-900 border border-navy-800 px-1.5 py-0.5 rounded">Terminal Command</span>
+                    </div>
 
-                {/* Secure Dossier Card */}
-                <div className="bg-white rounded-2xl p-5 border border-navy-950/5 space-y-3.5">
-                  <h4 className="font-serif font-black text-navy-950 uppercase tracking-wider text-[11px] border-b border-navy-950/5 pb-2">
-                    Security Credentials & Session
-                  </h4>
-                  <p className="text-[11px] text-navy-500 leading-relaxed">
-                    You are connected to this space using a protected token. Keep your device lock active. Administrative credentials are restricted to audited emails.
-                  </p>
-
-                  <div className="space-y-1 text-[9.5px] text-navy-400 font-mono uppercase border-t border-navy-950/5 pt-3">
-                    <p>&bull; ACTIVE LOGIN: {currentUser.email}</p>
-                    <p>&bull; CHAPTER SECTOR: {currentUser.chapter}</p>
-                    <p>&bull; AUTH LEVEL: {currentUser.role}</p>
-                    <p>&bull; CLIENT BINDING: Web Preview Frame</p>
+                    <div className="space-y-1 text-[9.5px] text-navy-400 font-mono uppercase border-t border-navy-950/5 pt-3">
+                      <p>&bull; SESSION BINDING: {currentUser?.email}</p>
+                      <p>&bull; AUTHORIZATION LEVEL: {currentUser?.role}</p>
+                      <p>&bull; CHAPTER CLUSTER: {currentUser?.chapter}</p>
+                    </div>
                   </div>
                 </div>
 

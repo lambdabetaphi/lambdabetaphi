@@ -1,239 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Member, Post, Comment, Announcement, Event, Notification, GalleryItem } from '../types';
+import { Member, Post, Comment, Announcement, Event, Notification, Chapter, GalleryItem } from '../types';
 
-// ==========================================
-// 1. Initial High-Fidelity Mock Seed Data
-// ==========================================
-
-const INITIAL_MEMBERS: Member[] = [
-  {
-    id: 'm1',
-    name: 'Roderick Danzing',
-    email: 'roderickdanzing04@gmail.com',
-    role: 'Admin',
-    chapter: 'Supreme Archon Chapter',
-    batch: 'Alpha Class 2022',
-    position: 'Supreme Commander',
-    joinsDate: '2022-01-15',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    phone: '0917-555-0123',
-    slaveName: 'System Architect',
-    birthday: '2004-07-20',
-    isOnline: true
-  },
-  {
-    id: 'm2',
-    name: 'Evelyn Sterling',
-    email: 'evelyn.sterling@example.com',
-    role: 'Officer',
-    chapter: 'Bohol Beta Chapter',
-    batch: 'Beta Class 2023',
-    position: 'Vice Archon',
-    joinsDate: '2023-04-12',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    phone: '0920-555-0143',
-    slaveName: 'Beta Queen',
-    birthday: '2003-11-05',
-    isOnline: true
-  },
-  {
-    id: 'm3',
-    name: 'Marcus Vance',
-    email: 'marcus.vance@example.com',
-    role: 'Member',
-    chapter: 'Bohol Alpha Chapter',
-    batch: 'Alpha Class 2022',
-    position: 'Technology Warden',
-    joinsDate: '2022-08-20',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    phone: '0915-555-0177',
-    slaveName: 'Dev Commander',
-    birthday: '2002-05-15',
-    isOnline: false
-  },
-  {
-    id: 'm4',
-    name: 'Helena Troy',
-    email: 'helena.troy@example.com',
-    role: 'Member',
-    chapter: 'Bohol Beta Chapter',
-    batch: 'Gamma Class 2024',
-    position: 'Academic Chair',
-    joinsDate: '2024-02-10',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
-    phone: '0945-555-0211',
-    slaveName: 'Brain Sovereign',
-    birthday: '2004-07-22', // Upcoming birthday!
-    isOnline: true
-  },
-  {
-    id: 'm5',
-    name: 'Julian Carter',
-    email: 'julian.c@example.com',
-    role: 'Pending',
-    chapter: 'Manila Alpha Chapter',
-    batch: 'Delta Class 2026',
-    position: 'Candidate',
-    joinsDate: '2026-07-18',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-    phone: '0917-222-3333',
-    slaveName: 'Hopeful Squire'
-  }
-];
-
-const INITIAL_POSTS: Post[] = [
-  {
-    id: 'p1',
-    author_id: 'm1',
-    author_name: 'Roderick Danzing',
-    author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    author_chapter: 'Supreme Archon Chapter',
-    author_slave_name: 'System Architect',
-    content: 'Welcome to the newly launched Private Community Portal of Lambda Beta Phi Fraternity and Sorority. This custom application will serve as our secure ledger, news feed, gallery, and administrative nexus. Direct all suggestions for digital portal enhancements to the Technology Committee.',
-    images: ['https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80'],
-    created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), // 3 days ago
-    likes_count: 3,
-    liked_by: ['m2', 'm3', 'm4']
-  },
-  {
-    id: 'p2',
-    author_id: 'm2',
-    author_name: 'Evelyn Sterling',
-    author_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    author_chapter: 'Bohol Beta Chapter',
-    author_slave_name: 'Beta Queen',
-    content: 'Had an incredibly successful joint philanthropy planning session last night. Looking forward to our Regional Community Outreach and Food Drive next week! Please RSVP in the Events tab so we can finalize logistics and assignments.',
-    images: [
-      'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=600&q=80',
-      'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=600&q=80'
-    ],
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(), // 5 hours ago
-    likes_count: 2,
-    liked_by: ['m1', 'm4']
-  }
-];
-
-const INITIAL_COMMENTS: Comment[] = [
-  {
-    id: 'c1',
-    post_id: 'p1',
-    author_id: 'm2',
-    author_name: 'Evelyn Sterling',
-    author_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    content: 'This portal is exceptionally clean and modern. Outstanding work on the layout, Rod!',
-    created_at: new Date(Date.now() - 3600000 * 24 * 2.8).toISOString()
-  },
-  {
-    id: 'c2',
-    post_id: 'p1',
-    author_id: 'm3',
-    author_name: 'Marcus Vance',
-    author_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    content: 'Excellent response time and the offline mode integration is top-tier.',
-    created_at: new Date(Date.now() - 3600000 * 24 * 2.5).toISOString()
-  }
-];
-
-const INITIAL_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: 'a1',
-    title: 'Supreme Council Annual Conclave',
-    content: 'Official notice is hereby given to all active Chapters that the Supreme Council Annual Conclave will be hosted next month. Officers must prepare and submit their chapter status audits, financial briefs, and updated registries by Friday. Attendance is strictly mandatory for all chapter executives.',
-    author_name: 'Roderick Danzing',
-    author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    created_at: new Date(Date.now() - 3600000 * 24 * 5).toISOString(),
-    is_pinned: true
-  },
-  {
-    id: 'a2',
-    title: 'Induction Ceremony Guidelines',
-    content: 'The official rituals and protocol dossiers for the incoming Alpha Class of 2026 have been posted in the private files. Please review your ceremonial roles and dress code requirements (formal black & gold).',
-    author_name: 'Evelyn Sterling',
-    author_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-    is_pinned: false
-  }
-];
-
-const INITIAL_EVENTS: Event[] = [
-  {
-    id: 'e1',
-    title: 'Community Outreach & Food Drive',
-    description: 'Annual philanthropy event supporting localized regional care centers. We will organize food distribution and coordinate with healthcare volunteers.',
-    date: '2026-07-28',
-    time: '08:00 AM',
-    location: 'Bohol Community Center & Gymnasium',
-    image: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=600&q=80',
-    category: 'Service',
-    created_by: 'm2',
-    rsvps: ['m1', 'm2', 'm4']
-  },
-  {
-    id: 'e2',
-    title: 'National Leadership Seminar',
-    description: 'An interactive workshop and conference bringing chapters together to share operational frameworks and foster strategic planning.',
-    date: '2026-08-15',
-    time: '10:00 AM',
-    location: 'Metropolitan Executive Hall',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80',
-    category: 'Professional',
-    created_by: 'm1',
-    rsvps: ['m1', 'm3']
-  }
-];
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'n1',
-    type: 'new_member',
-    title: 'New Member Registered',
-    content: 'Julian Carter has registered for the Manila Alpha Chapter and is currently pending administrator approval.',
-    reference_id: 'm5',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    is_read: false
-  },
-  {
-    id: 'n2',
-    type: 'new_post',
-    title: 'New Community Post',
-    content: 'Evelyn Sterling shared a photo updates regarding the Joint Philanthropy session.',
-    reference_id: 'p2',
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    is_read: false
-  }
-];
-
-const INITIAL_GALLERY: GalleryItem[] = [
-  {
-    id: 'g1',
-    album: 'Induction Class',
-    url: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80',
-    description: 'Supreme Commander addressing the delegation during the Conclave opening ceremony.',
-    uploaded_by: 'm1',
-    created_at: new Date(Date.now() - 3600000 * 24 * 10).toISOString()
-  },
-  {
-    id: 'g2',
-    album: 'Philanthropy Days',
-    url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
-    description: 'Volunteers and members during last season’s medical outreach campaign.',
-    uploaded_by: 'm2',
-    created_at: new Date(Date.now() - 3600000 * 24 * 15).toISOString()
-  },
-  {
-    id: 'g3',
-    album: 'Conclave 2025',
-    url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
-    description: 'Chapter presidents gathering for the executive council dinner.',
-    uploaded_by: 'm1',
-    created_at: new Date(Date.now() - 3600000 * 24 * 20).toISOString()
-  }
-];
-
-// ==========================================
-// 2. Storage Local Fallback Helpers
-// ==========================================
-
+// Storage helper for offline/caching if Supabase is temporarily offline
 const getStored = <T>(key: string, initial: T): T => {
   const data = localStorage.getItem(key);
   if (!data) {
@@ -247,12 +15,10 @@ const setStored = <T>(key: string, value: T) => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
-// ==========================================
-// 3. Dynamic Unified Database Service
-// ==========================================
-
 export const dbService = {
-  // Members & Users Management
+  // =================================================================
+  // 1. MEMBERS & ROSTER MANAGEMENT
+  // =================================================================
   async getMembers(): Promise<Member[]> {
     if (isSupabaseConfigured && supabase) {
       try {
@@ -263,14 +29,13 @@ export const dbService = {
         console.warn('Supabase exception in getMembers, using fallback:', e);
       }
     }
-    return getStored<Member[]>('lbp_v2_members', INITIAL_MEMBERS);
+    return getStored<Member[]>('lbp_prod_members', []);
   },
 
   async saveMembers(members: Member[]): Promise<void> {
-    setStored('lbp_v2_members', members);
+    setStored('lbp_prod_members', members);
     if (isSupabaseConfigured && supabase) {
       try {
-        // Attempt to sync
         const { error } = await supabase.from('members').upsert(members);
         if (error) console.warn('Supabase members save failed:', error.message);
       } catch (e) {
@@ -291,50 +56,91 @@ export const dbService = {
     return updatedMember;
   },
 
-  // News Feed & Posts
+  // =================================================================
+  // 2. SOCIAL FEED & POSTS (WITH IMAGES & LIKES)
+  // =================================================================
   async getPosts(): Promise<Post[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
-        if (!error && data) return data as Post[];
-        console.warn('Supabase posts fetch failed, using local:', error?.message);
+        const { data: dbPosts, error: postsErr } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!postsErr && dbPosts) {
+          // Fetch join data: images and likes
+          const { data: dbImages } = await supabase.from('post_images').select('*');
+          const { data: dbLikes } = await supabase.from('likes').select('*');
+
+          const mappedPosts: Post[] = dbPosts.map(p => {
+            const images = dbImages?.filter(img => img.post_id === p.id).map(img => img.image_url) || [];
+            const likes = dbLikes?.filter(lk => lk.post_id === p.id).map(lk => lk.member_id) || [];
+            return {
+              id: p.id,
+              member_id: p.member_id,
+              content: p.content,
+              created_at: p.created_at,
+              updated_at: p.updated_at,
+              images,
+              likes_count: likes.length,
+              liked_by: likes
+            };
+          });
+
+          return mappedPosts;
+        }
+        console.warn('Supabase posts fetch failed, using local:', postsErr?.message);
       } catch (e) {
         console.warn('Supabase exception in getPosts:', e);
       }
     }
-    const localPosts = getStored<Post[]>('lbp_v2_posts', INITIAL_POSTS);
-    return [...localPosts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return getStored<Post[]>('lbp_prod_posts', []);
   },
 
-  async createPost(post: Omit<Post, 'id' | 'created_at' | 'likes_count' | 'liked_by'>): Promise<Post> {
+  async createPost(post: Omit<Post, 'id' | 'created_at' | 'likes_count' | 'liked_by'> & { images?: string[] }): Promise<Post> {
+    const newPostId = 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     const newPost: Post = {
-      ...post,
-      id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      id: newPostId,
+      member_id: post.member_id,
+      content: post.content,
       created_at: new Date().toISOString(),
+      images: post.images || [],
       likes_count: 0,
       liked_by: []
     };
 
     const posts = await this.getPosts();
     const updated = [newPost, ...posts];
-    setStored('lbp_v2_posts', updated);
+    setStored('lbp_prod_posts', updated);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('posts').insert([newPost]);
-        if (error) console.warn('Supabase post insert failed:', error.message);
+        // 1. Insert to posts table
+        const { error: postErr } = await supabase.from('posts').insert([{
+          id: newPostId,
+          member_id: post.member_id,
+          content: post.content,
+          created_at: newPost.created_at
+        }]);
+
+        if (postErr) {
+          console.warn('Supabase post insert failed:', postErr.message);
+        }
+
+        // 2. Insert to post_images table
+        if (post.images && post.images.length > 0) {
+          const imageRows = post.images.map((img, idx) => ({
+            id: `img_${newPostId}_${idx}`,
+            post_id: newPostId,
+            image_url: img
+          }));
+          const { error: imgErr } = await supabase.from('post_images').insert(imageRows);
+          if (imgErr) console.warn('Supabase post_images insert failed:', imgErr.message);
+        }
       } catch (e) {
         console.warn('Supabase post insert exception:', e);
       }
     }
-
-    // Trigger Notification for new post
-    await this.createNotification({
-      type: 'new_post',
-      title: 'New Community Post',
-      content: `${newPost.author_name} posted in the feed: "${newPost.content.slice(0, 45)}..."`,
-      reference_id: newPost.id
-    });
 
     return newPost;
   },
@@ -345,6 +151,7 @@ export const dbService = {
     if (index === -1) return null;
 
     const post = posts[index];
+    if (!post.liked_by) post.liked_by = [];
     const isLiked = post.liked_by.includes(memberId);
 
     if (isLiked) {
@@ -354,15 +161,20 @@ export const dbService = {
     }
     post.likes_count = post.liked_by.length;
     posts[index] = post;
-    setStored('lbp_v2_posts', posts);
+    setStored('lbp_prod_posts', posts);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase
-          .from('posts')
-          .update({ liked_by: post.liked_by, likes_count: post.likes_count })
-          .eq('id', postId);
-        if (error) console.warn('Supabase toggle like failed:', error.message);
+        if (isLiked) {
+          await supabase.from('likes').delete().eq('post_id', postId).eq('member_id', memberId);
+        } else {
+          await supabase.from('likes').insert([{
+            id: 'lk_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            post_id: postId,
+            member_id: memberId,
+            created_at: new Date().toISOString()
+          }]);
+        }
       } catch (e) {
         console.warn('Supabase toggle like exception:', e);
       }
@@ -371,7 +183,9 @@ export const dbService = {
     return post;
   },
 
-  // Comments
+  // =================================================================
+  // 3. COMMENTS
+  // =================================================================
   async getComments(postId?: string): Promise<Comment[]> {
     if (isSupabaseConfigured && supabase) {
       try {
@@ -384,7 +198,7 @@ export const dbService = {
         console.warn('Supabase comments exception:', e);
       }
     }
-    const allComments = getStored<Comment[]>('lbp_v2_comments', INITIAL_COMMENTS);
+    const allComments = getStored<Comment[]>('lbp_prod_comments', []);
     if (postId) {
       return allComments.filter(c => c.post_id === postId);
     }
@@ -400,11 +214,17 @@ export const dbService = {
 
     const comments = await this.getComments();
     const updated = [...comments, newComment];
-    setStored('lbp_v2_comments', updated);
+    setStored('lbp_prod_comments', updated);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('comments').insert([newComment]);
+        const { error } = await supabase.from('comments').insert([{
+          id: newComment.id,
+          post_id: comment.post_id,
+          member_id: comment.member_id,
+          comment: comment.comment,
+          created_at: newComment.created_at
+        }]);
         if (error) console.warn('Supabase comment insert failed:', error.message);
       } catch (e) {
         console.warn('Supabase comment exception:', e);
@@ -414,7 +234,9 @@ export const dbService = {
     return newComment;
   },
 
-  // Announcements
+  // =================================================================
+  // 4. ANNOUNCEMENTS (DIRECTIVES)
+  // =================================================================
   async getAnnouncements(): Promise<Announcement[]> {
     if (isSupabaseConfigured && supabase) {
       try {
@@ -425,13 +247,7 @@ export const dbService = {
         console.warn('Supabase announcements exception:', e);
       }
     }
-    const local = getStored<Announcement[]>('lbp_v2_announcements', INITIAL_ANNOUNCEMENTS);
-    return [...local].sort((a, b) => {
-      // Pinned first, then date
-      if (a.is_pinned && !b.is_pinned) return -1;
-      if (!a.is_pinned && b.is_pinned) return 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+    return getStored<Announcement[]>('lbp_prod_announcements', []);
   },
 
   async createAnnouncement(announcement: Omit<Announcement, 'id' | 'created_at'>): Promise<Announcement> {
@@ -443,23 +259,23 @@ export const dbService = {
 
     const announcements = await this.getAnnouncements();
     const updated = [newAnn, ...announcements];
-    setStored('lbp_v2_announcements', updated);
+    setStored('lbp_prod_announcements', updated);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('announcements').insert([newAnn]);
+        const { error } = await supabase.from('announcements').insert([{
+          id: newAnn.id,
+          title: announcement.title,
+          content: announcement.content,
+          created_by: announcement.created_by,
+          is_pinned: announcement.is_pinned,
+          created_at: newAnn.created_at
+        }]);
         if (error) console.warn('Supabase announcement insert failed:', error.message);
       } catch (e) {
         console.warn('Supabase announcement exception:', e);
       }
     }
-
-    await this.createNotification({
-      type: 'new_announcement',
-      title: '🚨 New Announcement Pinned',
-      content: `A new chapter directive has been published: "${newAnn.title}"`,
-      reference_id: newAnn.id
-    });
 
     return newAnn;
   },
@@ -472,7 +288,7 @@ export const dbService = {
     const ann = anns[index];
     ann.is_pinned = !ann.is_pinned;
     anns[index] = ann;
-    setStored('lbp_v2_announcements', anns);
+    setStored('lbp_prod_announcements', anns);
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -492,7 +308,7 @@ export const dbService = {
   async deleteAnnouncement(annId: string): Promise<void> {
     const anns = await this.getAnnouncements();
     const filtered = anns.filter(a => a.id !== annId);
-    setStored('lbp_v2_announcements', filtered);
+    setStored('lbp_prod_announcements', filtered);
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -504,86 +320,73 @@ export const dbService = {
     }
   },
 
-  // Events
+  // =================================================================
+  // 5. EVENTS & RSVPS
+  // =================================================================
   async getEvents(): Promise<Event[]> {
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('events').select('*');
-        if (!error && data) return data as Event[];
-        console.warn('Supabase events fetch failed:', error?.message);
+        if (!error && data) {
+          // Standard map to client structure
+          return data.map(e => ({
+            id: e.id,
+            title: e.title,
+            description: e.description,
+            location: e.location,
+            event_date: e.event_date,
+            created_by: e.created_by,
+            rsvps: getStored<string[]>('lbp_rsvp_' + e.id, [])
+          })) as Event[];
+        }
+        console.warn('Supabase events fetch failed, using local:', error?.message);
       } catch (e) {
         console.warn('Supabase events exception:', e);
       }
     }
-    const local = getStored<Event[]>('lbp_v2_events', INITIAL_EVENTS);
-    return [...local].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return getStored<Event[]>('lbp_prod_events', []);
   },
 
   async createEvent(event: Omit<Event, 'id' | 'rsvps'>): Promise<Event> {
+    const newEventId = 'e_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     const newEvent: Event = {
-      ...event,
-      id: 'e_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      id: newEventId,
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      event_date: event.event_date,
+      created_by: event.created_by,
       rsvps: []
     };
 
     const events = await this.getEvents();
     const updated = [...events, newEvent];
-    setStored('lbp_v2_events', updated);
+    setStored('lbp_prod_events', updated);
+    setStored('lbp_rsvp_' + newEventId, []);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('events').insert([newEvent]);
+        const { error } = await supabase.from('events').insert([{
+          id: newEventId,
+          title: event.title,
+          description: event.description,
+          location: event.location,
+          event_date: event.event_date,
+          created_by: event.created_by
+        }]);
         if (error) console.warn('Supabase event insert failed:', error.message);
       } catch (e) {
         console.warn('Supabase event exception:', e);
       }
     }
 
-    await this.createNotification({
-      type: 'new_event',
-      title: '📅 New Event Scheduled',
-      content: `A new chapter event has been created: "${newEvent.title}" on ${newEvent.date}. RSVP now!`,
-      reference_id: newEvent.id
-    });
-
     return newEvent;
-  },
-
-  async rsvpEvent(eventId: string, memberId: string): Promise<Event | null> {
-    const events = await this.getEvents();
-    const index = events.findIndex(e => e.id === eventId);
-    if (index === -1) return null;
-
-    const event = events[index];
-    const isRsvpd = event.rsvps.includes(memberId);
-
-    if (isRsvpd) {
-      event.rsvps = event.rsvps.filter(id => id !== memberId);
-    } else {
-      event.rsvps.push(memberId);
-    }
-    events[index] = event;
-    setStored('lbp_v2_events', events);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase
-          .from('events')
-          .update({ rsvps: event.rsvps })
-          .eq('id', eventId);
-        if (error) console.warn('Supabase rsvp update failed:', error.message);
-      } catch (e) {
-        console.warn('Supabase rsvp exception:', e);
-      }
-    }
-
-    return event;
   },
 
   async deleteEvent(eventId: string): Promise<void> {
     const events = await this.getEvents();
     const filtered = events.filter(e => e.id !== eventId);
-    setStored('lbp_v2_events', filtered);
+    setStored('lbp_prod_events', filtered);
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -595,7 +398,9 @@ export const dbService = {
     }
   },
 
-  // Notifications
+  // =================================================================
+  // 6. NOTIFICATIONS
+  // =================================================================
   async getNotifications(): Promise<Notification[]> {
     if (isSupabaseConfigured && supabase) {
       try {
@@ -606,8 +411,7 @@ export const dbService = {
         console.warn('Supabase notifications exception:', e);
       }
     }
-    const local = getStored<Notification[]>('lbp_v2_notifications', INITIAL_NOTIFICATIONS);
-    return [...local].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return getStored<Notification[]>('lbp_prod_notifications', []);
   },
 
   async createNotification(notif: Omit<Notification, 'id' | 'created_at' | 'is_read'>): Promise<Notification> {
@@ -618,13 +422,20 @@ export const dbService = {
       is_read: false
     };
 
-    const notifs = getStored<Notification[]>('lbp_v2_notifications', INITIAL_NOTIFICATIONS);
+    const notifs = getStored<Notification[]>('lbp_prod_notifications', []);
     const updated = [newNotif, ...notifs];
-    setStored('lbp_v2_notifications', updated);
+    setStored('lbp_prod_notifications', updated);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('notifications').insert([newNotif]);
+        const { error } = await supabase.from('notifications').insert([{
+          id: newNotif.id,
+          member_id: notif.member_id,
+          title: notif.title,
+          message: notif.message,
+          is_read: false,
+          created_at: newNotif.created_at
+        }]);
         if (error) console.warn('Supabase notification insert failed:', error.message);
       } catch (e) {
         console.warn('Supabase notification exception:', e);
@@ -639,7 +450,7 @@ export const dbService = {
     const index = notifs.findIndex(n => n.id === notifId);
     if (index !== -1) {
       notifs[index].is_read = true;
-      setStored('lbp_v2_notifications', notifs);
+      setStored('lbp_prod_notifications', notifs);
     }
 
     if (isSupabaseConfigured && supabase) {
@@ -656,7 +467,7 @@ export const dbService = {
   },
 
   async clearAllNotifications(): Promise<void> {
-    setStored('lbp_v2_notifications', []);
+    setStored('lbp_prod_notifications', []);
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -668,19 +479,68 @@ export const dbService = {
     }
   },
 
-  // Gallery
-  async getGalleryItems(): Promise<GalleryItem[]> {
+  // =================================================================
+  // 7. CHAPTERS
+  // =================================================================
+  async getChapters(): Promise<Chapter[]> {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('gallery').select('*').order('created_at', { ascending: false });
-        if (!error && data) return data as GalleryItem[];
-        console.warn('Supabase gallery fetch failed:', error?.message);
+        const { data, error } = await supabase.from('chapters').select('*');
+        if (!error && data) return data as Chapter[];
+        console.warn('Supabase chapters fetch failed:', error?.message);
       } catch (e) {
-        console.warn('Supabase gallery exception:', e);
+        console.warn('Supabase chapters exception:', e);
       }
     }
-    const local = getStored<GalleryItem[]>('lbp_v2_gallery', INITIAL_GALLERY);
-    return [...local].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return getStored<Chapter[]>('lbp_prod_chapters', []);
+  },
+
+  async createChapter(chapter: Omit<Chapter, 'id'>): Promise<Chapter> {
+    const newChapter: Chapter = {
+      ...chapter,
+      id: 'ch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+    };
+
+    const chapters = await this.getChapters();
+    const updated = [...chapters, newChapter];
+    setStored('lbp_prod_chapters', updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.from('chapters').insert([newChapter]);
+        if (error) console.warn('Supabase chapter insert failed:', error.message);
+      } catch (e) {
+        console.warn('Supabase chapter exception:', e);
+      }
+    }
+
+    return newChapter;
+  },
+
+  async rsvpEvent(eventId: string, memberId: string): Promise<Event | null> {
+    const events = await this.getEvents();
+    const index = events.findIndex(e => e.id === eventId);
+    if (index === -1) return null;
+
+    const event = events[index];
+    if (!event.rsvps) event.rsvps = [];
+    const isRsvpd = event.rsvps.includes(memberId);
+
+    if (isRsvpd) {
+      event.rsvps = event.rsvps.filter(id => id !== memberId);
+    } else {
+      event.rsvps.push(memberId);
+    }
+
+    events[index] = event;
+    setStored('lbp_prod_events', events);
+    setStored('lbp_rsvp_' + eventId, event.rsvps);
+
+    return event;
+  },
+
+  async getGalleryItems(): Promise<GalleryItem[]> {
+    return getStored<GalleryItem[]>('lbp_prod_gallery', []);
   },
 
   async uploadGalleryItem(item: Omit<GalleryItem, 'id' | 'created_at'>): Promise<GalleryItem> {
@@ -689,20 +549,121 @@ export const dbService = {
       id: 'g_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       created_at: new Date().toISOString()
     };
-
     const items = await this.getGalleryItems();
     const updated = [newItem, ...items];
-    setStored('lbp_v2_gallery', updated);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase.from('gallery').insert([newItem]);
-        if (error) console.warn('Supabase gallery insert failed:', error.message);
-      } catch (e) {
-        console.warn('Supabase gallery exception:', e);
-      }
-    }
-
+    setStored('lbp_prod_gallery', updated);
     return newItem;
+  },
+
+  // =================================================================
+  // 8. DIAGNOSTICS & AUTO PROVISIONING
+  // =================================================================
+  async checkTableExists(tableName: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase.from(tableName).select('id').limit(1);
+      if (!error) return true;
+      if (error.code === '42P01') return false;
+      return error.code !== '42P01';
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async checkAllTables(): Promise<Record<string, boolean>> {
+    const tables = ['chapters', 'members', 'posts', 'post_images', 'comments', 'likes', 'announcements', 'events', 'notifications'];
+    const results: Record<string, boolean> = {};
+    for (const table of tables) {
+      results[table] = await this.checkTableExists(table);
+    }
+    return results;
+  },
+
+  async autoProvision(): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, error: 'Supabase is not configured' };
+    }
+    try {
+      const schemaSql = `
+CREATE TABLE IF NOT EXISTS public.chapters (
+    id TEXT PRIMARY KEY,
+    chapter_name TEXT NOT NULL,
+    province TEXT,
+    city TEXT
+);
+CREATE TABLE IF NOT EXISTS public.members (
+    id TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    chapter TEXT,
+    batch TEXT,
+    position TEXT,
+    role TEXT NOT NULL DEFAULT 'Member',
+    status TEXT NOT NULL DEFAULT 'Pending',
+    avatar_url TEXT,
+    phone TEXT,
+    bio TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+CREATE TABLE IF NOT EXISTS public.posts (
+    id TEXT PRIMARY KEY,
+    member_id TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+CREATE TABLE IF NOT EXISTS public.post_images (
+    id TEXT PRIMARY KEY,
+    post_id TEXT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS public.comments (
+    id TEXT PRIMARY KEY,
+    post_id TEXT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    member_id TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+    comment TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+CREATE TABLE IF NOT EXISTS public.likes (
+    id TEXT PRIMARY KEY,
+    post_id TEXT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    member_id TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT unique_post_member_like UNIQUE (post_id, member_id)
+);
+CREATE TABLE IF NOT EXISTS public.announcements (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_by TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+    is_pinned BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+CREATE TABLE IF NOT EXISTS public.events (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    location TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    created_by TEXT REFERENCES public.members(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id TEXT PRIMARY KEY,
+    member_id TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+      `;
+      const { error } = await supabase.rpc('exec_sql', { sql_query: schemaSql });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'exec_sql RPC function not found in database' };
+    }
   }
 };

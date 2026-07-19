@@ -75,12 +75,12 @@ export default function Navigation({ activeTab, setActiveTab, currentUser, onLog
                   className="flex items-center gap-2 text-[10px] text-navy-950 hover:text-gold-500 bg-navy-950/5 hover:bg-navy-950/10 px-3 py-1.5 rounded-none border border-navy-950/15 transition-all cursor-pointer font-bold uppercase tracking-wider"
                 >
                   <img 
-                    src={currentUser.avatarUrl} 
-                    alt={currentUser.name} 
+                    src={currentUser.avatar_url} 
+                    alt={currentUser.full_name} 
                     className="w-4 h-4 rounded-none object-cover border border-gold-500"
                     referrerPolicy="no-referrer"
                   />
-                  <span className="max-w-[80px] truncate">{currentUser.name.split(' ')[0]}</span>
+                  <span className="max-w-[80px] truncate">{currentUser.full_name.split(' ')[0]}</span>
                 </button>
                 <button 
                   onClick={onLogout}
@@ -108,8 +108,8 @@ export default function Navigation({ activeTab, setActiveTab, currentUser, onLog
                 className="flex items-center justify-center w-8 h-8 rounded-none border border-gold-500 overflow-hidden"
               >
                 <img 
-                  src={currentUser.avatarUrl} 
-                  alt={currentUser.name} 
+                  src={currentUser.avatar_url} 
+                  alt={currentUser.full_name} 
                   className="w-full h-full object-cover" 
                   referrerPolicy="no-referrer"
                 />
@@ -152,13 +152,13 @@ export default function Navigation({ activeTab, setActiveTab, currentUser, onLog
             <div className="pt-4 mt-2 border-t border-navy-950/10 flex items-center justify-between px-4">
               <div className="flex items-center gap-3">
                 <img 
-                  src={currentUser.avatarUrl} 
-                  alt={currentUser.name} 
+                  src={currentUser.avatar_url} 
+                  alt={currentUser.full_name} 
                   className="w-8 h-8 rounded-none object-cover border border-gold-500"
                   referrerPolicy="no-referrer"
                 />
                 <div>
-                  <p className="text-xs font-bold text-navy-950">{currentUser.name}</p>
+                  <p className="text-xs font-bold text-navy-950">{currentUser.full_name}</p>
                   <p className="text-[9px] uppercase tracking-wider text-navy-400 font-bold">{currentUser.role}</p>
                 </div>
               </div>

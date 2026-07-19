@@ -6,9 +6,7 @@ import {
   PlusCircle, 
   UserCheck, 
   Users, 
-  ChevronRight, 
   CheckCircle,
-  HelpCircle,
   Sparkles,
   Info
 } from 'lucide-react';
@@ -23,66 +21,43 @@ interface EventPageProps {
 }
 
 export default function EventPage({ events, currentUser, onRsvpEvent, onPublishEvent, members }: EventPageProps) {
-  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
 
   // Form States
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newCat, setNewCat] = useState<'Social' | 'Service' | 'Professional' | 'Academic' | 'Ritual' | 'Alumni'>('Social');
   const [newDate, setNewDate] = useState('');
-  const [newTime, setNewTime] = useState('');
   const [newLocation, setNewLocation] = useState('');
-  const [newImage, setNewImage] = useState('');
-  const [newCapacity, setNewCapacity] = useState<number>(100);
-  const [newHighlights, setNewHighlights] = useState('');
-
-  const categories = ['all', 'Social', 'Service', 'Professional', 'Academic', 'Ritual', 'Alumni'];
-
-  const filteredEvents = activeCategory === 'all'
-    ? events
-    : events.filter(e => e.category === activeCategory);
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim() || !newDesc.trim() || !newDate || !newTime || !newLocation.trim()) return;
-
-    const defaultImage = newImage.trim() || 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80';
+    if (!newTitle.trim() || !newDesc.trim() || !newDate || !newLocation.trim()) return;
 
     onPublishEvent({
-      title: newTitle,
-      description: newDesc,
-      category: newCat,
-      date: newDate,
-      time: newTime,
-      location: newLocation,
-      image: defaultImage,
-      capacity: newCapacity,
-      highlights: newHighlights.trim() || undefined
+      title: newTitle.trim(),
+      description: newDesc.trim(),
+      event_date: newDate,
+      location: newLocation.trim(),
+      created_by: currentUser?.id
     });
 
     // Reset
     setNewTitle('');
     setNewDesc('');
-    setNewCat('Social');
     setNewDate('');
-    setNewTime('');
     setNewLocation('');
-    setNewImage('');
-    setNewCapacity(100);
-    setNewHighlights('');
     setIsCreatingEvent(false);
   };
 
-  // Helper: map member emails to avatar images
-  const getAvatarForEmail = (email: string) => {
-    const matched = members.find(m => m.email === email);
-    return matched ? matched.avatarUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
+  // Helper: map member IDs to avatar images
+  const getAvatarForMemberId = (memberId: string) => {
+    const matched = members.find(m => m.id === memberId);
+    return matched?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80';
   };
 
-  const getNameForEmail = (email: string) => {
-    const matched = members.find(m => m.email === email);
-    return matched ? matched.name : email;
+  const getNameForMemberId = (memberId: string) => {
+    const matched = members.find(m => m.id === memberId);
+    return matched?.full_name || 'Initiate Member';
   };
 
   return (
@@ -92,233 +67,146 @@ export default function EventPage({ events, currentUser, onRsvpEvent, onPublishE
         {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
-            <span className="text-[10px] font-bold tracking-widest text-[#c5a059] uppercase block mb-2">Chapter Engagements</span>
+            <span className="text-[10px] font-bold tracking-widest text-[#c5a059] uppercase block mb-2 font-mono">Chapter Engagements</span>
             <h1 className="text-3xl md:text-4xl font-serif font-black text-navy-950 uppercase tracking-tight">
-              Events Calendar
+              Assemblies Calendar
             </h1>
-            <p className="text-xs text-navy-950/60 mt-1 font-sans">RSVP to active philanthropy drives, honor banquets, academic councils, and community sessions.</p>
+            <p className="text-xs text-navy-950/60 mt-1 font-sans">RSVP to active chapter meetings, assemblies, philanthropy drives, and social mixers.</p>
           </div>
 
           {currentUser && (
             <button
               onClick={() => setIsCreatingEvent(!isCreatingEvent)}
-              className={`flex items-center gap-2 text-[10px] font-bold py-3.5 px-6 rounded-none shadow-none uppercase tracking-widest transition-all cursor-pointer ${
+              className={`flex items-center gap-2 text-[10px] font-bold py-3.5 px-6 rounded-none uppercase tracking-widest transition-all cursor-pointer font-sans border ${
                 isCreatingEvent
-                  ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                  : 'bg-navy-950 text-gold-500 border border-navy-950 hover:bg-navy-800'
+                  ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                  : 'bg-navy-950 text-gold-500 border-navy-950 hover:bg-navy-800'
               }`}
             >
               <PlusCircle className="w-4 h-4" />
-              {isCreatingEvent ? 'Cancel Event Setup' : 'Schedule Chapter Event'}
+              {isCreatingEvent ? 'Cancel Assembly Setup' : 'Schedule Chapter Assembly'}
             </button>
           )}
         </div>
 
         {/* CREATE EVENT DRAWER */}
         {isCreatingEvent && currentUser && (
-          <div className="bg-white p-6 md:p-8 rounded-none border-2 border-gold-500 shadow-none mb-12 animate-slide-up max-w-3xl mx-auto">
+          <div className="bg-white p-6 md:p-8 rounded-2xl border border-navy-950/5 shadow-sm mb-12 animate-slide-up max-w-3xl mx-auto font-sans">
             <div className="flex items-center gap-2 text-[#c5a059] mb-6 pb-2 border-b border-navy-950/10">
               <Sparkles className="w-5 h-5 text-gold-500" />
-              <h3 className="font-serif font-black text-base text-navy-950 uppercase tracking-wider">Schedule Chapter Event</h3>
+              <h3 className="font-serif font-black text-base text-navy-950 uppercase tracking-wider">Schedule Chapter Assembly</h3>
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-5 text-xs md:text-sm">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Event Title</label>
+                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5 font-mono">Assembly Title</label>
                   <input
                     type="text"
                     placeholder="e.g., Joint Formal Winter Banquet"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                    className="w-full p-3 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Category</label>
-                  <select
-                    value={newCat}
-                    onChange={(e) => setNewCat(e.target.value as any)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans text-xs"
-                  >
-                    <option value="Social">Social / Mixer</option>
-                    <option value="Service">Philanthropy / Service</option>
-                    <option value="Professional">Professional Development</option>
-                    <option value="Academic">Academic / Scholastic</option>
-                    <option value="Ritual">Ritual / Formal Chapter</option>
-                    <option value="Alumni">Alumni Reunion</option>
-                  </select>
+                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5 font-mono">Date and Time</label>
+                  <input
+                    type="datetime-local"
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                    className="w-full p-3 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950"
+                    required
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Description</label>
-                <textarea
-                  placeholder="Outline the purpose of the event, expectations, dress code, etc."
-                  rows={4}
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans text-xs"
+                <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5 font-mono">Location</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Grand Ballroom, University Campus / Online Zoom Link"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  className="w-full p-3 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div>
-                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Date</label>
-                  <input
-                    type="date"
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Time Frame</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., 18:00 - 21:00"
-                    value={newTime}
-                    onChange={(e) => setNewTime(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Event Capacity</label>
-                  <input
-                    type="number"
-                    min={10}
-                    value={newCapacity}
-                    onChange={(e) => setNewCapacity(Number(e.target.value))}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Location</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Chapter Lounge or Grand Hotel"
-                    value={newLocation}
-                    onChange={(e) => setNewLocation(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Cover Image URL</label>
-                  <input
-                    type="url"
-                    placeholder="e.g., https://images.unsplash.com/..."
-                    value={newImage}
-                    onChange={(e) => setNewImage(e.target.value)}
-                    className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5">Event Highlights (Dress Code, details)</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Cocktail attire required. Networking reception begins 30 mins prior."
-                  value={newHighlights}
-                  onChange={(e) => setNewHighlights(e.target.value)}
-                  className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                <label className="block text-[10px] font-bold text-navy-950 uppercase mb-1.5 font-mono">Assembly Description</label>
+                <textarea
+                  rows={4}
+                  placeholder="Describe the objective, guidelines, attire, and agenda of this assembly..."
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  className="w-full p-3 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                  required
                 />
               </div>
 
-              <div className="flex items-center gap-3 justify-end pt-3">
+              <div className="pt-3 border-t border-navy-950/5 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsCreatingEvent(false)}
-                  className="px-5 py-2.5 rounded-none border border-navy-950/15 text-navy-700 hover:bg-navy-50 font-bold text-[10px] uppercase tracking-widest"
+                  className="px-5 py-2.5 border border-navy-950/10 text-navy-950 text-[10px] font-bold uppercase tracking-widest hover:bg-navy-50 rounded-lg transition-colors cursor-pointer"
                 >
                   Dismiss
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-none bg-[#c5a059] text-white hover:bg-gold-600 font-bold text-[10px] uppercase tracking-widest"
+                  className="px-6 py-2.5 bg-navy-950 text-gold-500 text-[10px] font-bold uppercase tracking-widest hover:bg-navy-900 rounded-lg shadow-sm transition-colors cursor-pointer"
                 >
-                  Create Event
+                  Publish Assembly
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        {/* CATEGORY BAR */}
-        <div className="flex overflow-x-auto gap-2 pb-6 mb-8 border-b border-navy-950/10 scrollbar-none">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-none text-[10px] font-bold tracking-widest uppercase shrink-0 transition-all cursor-pointer ${
-                activeCategory === cat
-                  ? 'bg-navy-950 text-gold-500 shadow-none border border-navy-950'
-                  : 'bg-white text-navy-950 border border-navy-950/10 hover:border-gold-500'
-              }`}
-            >
-              {cat === 'all' ? 'All Activities' : cat}
-            </button>
-          ))}
-        </div>
-
         {/* EVENTS LIST GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {filteredEvents.length === 0 ? (
-            <div className="col-span-1 lg:col-span-2 text-center py-20 bg-white rounded-none border border-navy-950/10">
-              <Calendar className="w-10 h-10 text-navy-300 mx-auto mb-4" />
-              <p className="text-navy-950 font-bold uppercase tracking-widest text-xs">No scheduled events in this category.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 font-sans">
+          {events.length === 0 ? (
+            <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-navy-950/5 p-8">
+              <Calendar className="w-12 h-12 text-navy-200 mx-auto mb-4 animate-pulse" />
+              <p className="text-navy-950 font-serif font-black uppercase tracking-wider text-sm">No Scheduled Assemblies</p>
+              <p className="text-navy-500 text-xs mt-1">Please sign in as an officer or administrator to schedule the first assembly.</p>
             </div>
           ) : (
-            filteredEvents.map((event) => {
-              const isRsvpd = currentUser && event.rsvps.includes(currentUser.email);
-              const spotsFilled = event.rsvps.length;
-              const maxCapacity = event.capacity || 100;
-              const fillPercentage = Math.min((spotsFilled / maxCapacity) * 100, 100);
+            events.map((event) => {
+              const rsvpList = event.rsvps || [];
+              const isRsvpd = currentUser && rsvpList.includes(currentUser.id);
+              const formattedDate = new Date(event.event_date).toLocaleDateString(undefined, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
+              const formattedTime = new Date(event.event_date).toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit'
+              });
 
               return (
                 <div 
                   key={event.id}
-                  className="bg-white rounded-none overflow-hidden border border-navy-950/10 shadow-none hover:border-gold-500/40 transition-all duration-300 grid grid-cols-1 md:grid-cols-12"
+                  className="bg-white rounded-2xl overflow-hidden border border-navy-950/5 shadow-sm hover:border-[#c5a059]/30 transition-all duration-300 flex flex-col justify-between"
                 >
-                  
-                  {/* Left Column: Cover Banner */}
-                  <div className="md:col-span-5 h-56 md:h-full relative overflow-hidden">
-                    <img 
-                      src={event.image} 
-                      alt={event.title} 
-                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span className="absolute top-4 left-4 bg-navy-950 text-gold-500 text-[9px] font-black uppercase tracking-widest px-3 py-1 border border-gold-500/20">
-                      {event.category}
-                    </span>
-                  </div>
-
-                  {/* Right Column: Information Body */}
-                  <div className="md:col-span-7 p-6 md:p-8 flex flex-col justify-between space-y-4">
-                    
+                  <div className="p-6 md:p-8 space-y-4">
                     <div className="space-y-2">
                       <h3 className="font-serif font-black text-navy-950 text-base md:text-lg leading-tight uppercase tracking-wide">
                         {event.title}
                       </h3>
                       
-                      <div className="flex flex-col gap-1.5 text-navy-950/60 text-[10px] font-bold uppercase tracking-widest">
+                      <div className="flex flex-col gap-1.5 text-navy-950/60 text-[10px] font-bold uppercase tracking-widest font-mono">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3.5 h-3.5 text-gold-600 shrink-0" />
-                          <span>{event.date}</span>
+                          <span>{formattedDate}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-3.5 h-3.5 text-gold-600 shrink-0" />
-                          <span>{event.time}</span>
+                          <span>{formattedTime}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="w-3.5 h-3.5 text-gold-600 shrink-0" />
@@ -326,93 +214,73 @@ export default function EventPage({ events, currentUser, onRsvpEvent, onPublishE
                         </div>
                       </div>
 
-                      <p className="text-navy-950/70 text-xs font-light leading-relaxed font-sans line-clamp-3">
+                      <p className="text-navy-950/70 text-xs leading-relaxed font-sans pt-2">
                         {event.description}
                       </p>
                     </div>
 
-                    {/* RSVP and Progress Area */}
-                    <div className="space-y-3 pt-3 border-t border-navy-950/5">
-                      
-                      {/* Spots Capacity tracker */}
-                      <div className="flex justify-between text-[10px] font-bold text-navy-950 uppercase tracking-wider">
-                        <span className="flex items-center gap-1">
+                    {/* RSVP list tracker */}
+                    <div className="space-y-3 pt-4 border-t border-navy-950/5">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-navy-950 uppercase tracking-wider font-mono">
+                        <span className="flex items-center gap-1.5">
                           <Users className="w-3.5 h-3.5 text-navy-400" />
-                          {spotsFilled} / {maxCapacity} Reserved
+                          {rsvpList.length} Attending
                         </span>
-                        <span>{Math.round(fillPercentage)}% Capacity</span>
                       </div>
 
-                      {/* Progress Bar */}
-                      <div className="w-full h-1 bg-navy-100 rounded-none overflow-hidden">
-                        <div 
-                          className="h-full bg-gold-500 transition-all duration-500"
-                          style={{ width: `${fillPercentage}%` }}
-                        />
-                      </div>
-
-                      {/* RSVP User Avatars (Square Pile) */}
-                      {event.rsvps.length > 0 && (
-                        <div className="flex items-center gap-2">
+                      {/* Attendee Avatars */}
+                      {rsvpList.length > 0 && (
+                        <div className="flex items-center gap-2 py-1">
                           <div className="flex -space-x-1.5 overflow-hidden">
-                            {event.rsvps.slice(0, 5).map((email, idx) => (
+                            {rsvpList.slice(0, 5).map((mId, idx) => (
                               <img
                                 key={idx}
-                                src={getAvatarForEmail(email)}
-                                alt={getNameForEmail(email)}
-                                title={getNameForEmail(email)}
-                                className="inline-block h-6 w-6 rounded-none border border-gold-500 object-cover object-center bg-white"
+                                src={getAvatarForMemberId(mId)}
+                                alt={getNameForMemberId(mId)}
+                                title={getNameForMemberId(mId)}
+                                className="inline-block h-6 w-6 rounded-full border border-white ring-1 ring-[#c5a059] object-cover bg-white"
                                 referrerPolicy="no-referrer"
                               />
                             ))}
-                            {event.rsvps.length > 5 && (
-                              <div className="inline-flex h-6 w-6 items-center justify-center rounded-none bg-navy-950 text-[9px] font-black text-gold-500 border border-gold-500/30">
-                                +{event.rsvps.length - 5}
+                            {rsvpList.length > 5 && (
+                              <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-navy-950 text-[9px] font-black text-gold-500 border border-white font-mono">
+                                +{rsvpList.length - 5}
                               </div>
                             )}
                           </div>
-                          <span className="text-[9px] uppercase tracking-widest text-navy-400 font-bold">attending</span>
                         </div>
                       )}
-
-                      {/* Highlight snippet info box */}
-                      {event.highlights && (
-                        <div className="bg-[#fbf9f4] p-2 rounded-none border border-navy-950/5 flex items-start gap-1.5 text-[9px] text-navy-600 font-medium">
-                          <Info className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
-                          <span>{event.highlights}</span>
-                        </div>
-                      )}
-
-                      {/* Action trigger button */}
-                      {currentUser ? (
-                        <button
-                          onClick={() => onRsvpEvent(event.id)}
-                          className={`w-full py-2.5 rounded-none text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                            isRsvpd
-                              ? 'bg-gold-500/10 text-gold-700 border border-gold-500/30'
-                              : 'bg-navy-950 text-white hover:bg-gold-500 hover:text-navy-950'
-                          }`}
-                        >
-                          {isRsvpd ? (
-                            <>
-                              <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                              RSVP Checked &bull; Retract Ticket
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="w-3.5 h-3.5" />
-                              Secure My Event Ticket
-                            </>
-                          )}
-                        </button>
-                      ) : (
-                        <div className="text-center p-2.5 bg-gold-500/5 border border-gold-500/20 text-[10px] font-bold uppercase tracking-widest text-navy-950">
-                          Please sign in above to reserve tickets.
-                        </div>
-                      )}
-
                     </div>
+                  </div>
 
+                  {/* Actions footer */}
+                  <div className="bg-navy-50/50 p-4 border-t border-navy-950/5">
+                    {currentUser ? (
+                      <button
+                        onClick={() => onRsvpEvent(event.id)}
+                        className={`w-full py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 cursor-pointer font-sans border ${
+                          isRsvpd
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-navy-950 text-gold-500 hover:bg-navy-900 border-navy-950'
+                        }`}
+                      >
+                        {isRsvpd ? (
+                          <>
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                            Registered ✓ Cancel Ticket
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck className="w-3.5 h-3.5" />
+                            Secure My Ticket
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="text-center py-2.5 bg-[#fbf9f4] border border-[#c5a059]/20 text-[10px] font-bold uppercase tracking-widest text-[#c5a059] rounded-xl font-mono">
+                        Sign In to Secure RSVP Ticket
+                      </div>
+                    )}
                   </div>
                 </div>
               );

@@ -10,11 +10,69 @@ import {
   GraduationCap, 
   Clock 
 } from 'lucide-react';
-import { INITIAL_BOARD, FRAT_INFO } from '../data';
-import { BoardMember } from '../types';
+import { FRAT_INFO } from '../data';
+
+interface Founder {
+  id: string;
+  name: string;
+  role: string;
+  image: string;
+  major: string;
+  hometown: string;
+  email: string;
+  quote: string;
+  bio: string;
+}
+
+const FOUNDERS: Founder[] = [
+  {
+    id: 'f1',
+    name: 'Desiderio Cloribel',
+    role: 'Co-Founder & First Supreme Grand',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+    major: 'Law & Jurisprudence',
+    hometown: 'Tagbilaran City, Bohol',
+    email: 'founders@lambdabetaphi.org',
+    quote: 'To lead is to serve with unyielding integrity, academic devotion, and an unbreakable love for the community.',
+    bio: 'Desiderio Cloribel was the pioneering spirit who secured the first official recognition of Lambda Beta Phi Fraternity from the University of Bohol administration in 1970, setting the cornerstone for our legacy.'
+  },
+  {
+    id: 'f2',
+    name: 'Efraim Castro',
+    role: 'Co-Founder & Chief Architect',
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    major: 'Political Science',
+    hometown: 'Tagbilaran City, Bohol',
+    email: 'founders@lambdabetaphi.org',
+    quote: 'Our brotherhood and sisterhood must remain a beacon of intellectual strength and civic duty across all islands.',
+    bio: 'Efraim Castro worked tirelessly alongside Cloribel to draft our initial constitution, organize our core chapters, and formulate our sovereign creed and principles of Love, Bravery, and Loyalty.'
+  },
+  {
+    id: 'f3',
+    name: 'Tito Abucejo',
+    role: 'Co-Founder & Orator',
+    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80',
+    major: 'Liberal Arts & Philosophy',
+    hometown: 'Carmen, Bohol',
+    email: 'founders@lambdabetaphi.org',
+    quote: 'Knowledge is the shield that preserves our honor and builds a truly respected society.',
+    bio: 'Tito Abucejo was known for his soaring oratory and philosophical depth, contributing significantly to the lyrical and spiritual foundations of the Lambda Beta Phi creed.'
+  },
+  {
+    id: 'f4',
+    name: 'Arthur Arengo',
+    role: 'Co-Founder & Treasurer',
+    image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80',
+    major: 'Business Administration',
+    hometown: 'Tagbilaran City, Bohol',
+    email: 'founders@lambdabetaphi.org',
+    quote: 'Loyalty binds us, but structure and service allow our legacy to thrive globally.',
+    bio: 'Arthur Arengo established our first treasury systems and alumni network guidelines, ensuring the early organization had the administrative stability to support rapid expansion.'
+  }
+];
 
 export default function AboutUs() {
-  const [selectedOfficer, setSelectedOfficer] = useState<BoardMember | null>(null);
+  const [selectedOfficer, setSelectedOfficer] = useState<Founder | null>(null);
 
   const historyTimeline = [
     {
@@ -140,22 +198,22 @@ export default function AboutUs() {
           </div>
         </div>
 
-        {/* EXECUTIVE BOARD / OFFICERS */}
+        {/* THE ORIGINAL FOUNDERS */}
         <div className="mb-12">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-[10px] font-bold tracking-widest text-gold-500 uppercase block mb-3">Chapter Leadership</span>
+            <span className="text-[10px] font-bold tracking-widest text-gold-500 uppercase block mb-3">Historical Founders</span>
             <h2 className="text-2xl md:text-3xl font-serif font-black text-navy-950 uppercase tracking-tight">
-              The Chapter Executive Committee
+              The Seven Original Founders of 1969
             </h2>
             <div className="h-[2px] w-12 bg-gold-500 mx-auto mt-4"></div>
             <p className="text-navy-950/70 mt-4 text-xs font-sans max-w-lg mx-auto">
-              Meet the executive council managing operations, financial tracking, recruitment strategies, and philanthropy for our chapters. Click on an officer to learn more about them.
+              Meet the visionary college students who established the foundations of Lambda Beta Phi Fraternity on July 9, 1969. Click on a founder to read their biography.
             </p>
           </div>
 
-          {/* Officers Grid */}
+          {/* Founders Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border border-navy-950/10 bg-white">
-            {INITIAL_BOARD.map((officer) => (
+            {FOUNDERS.map((officer) => (
               <div 
                 key={officer.id}
                 onClick={() => setSelectedOfficer(officer)}
@@ -185,7 +243,7 @@ export default function AboutUs() {
                     {officer.role}
                   </p>
                   <p className="text-[9px] text-navy-950/60 font-bold tracking-widest mt-3 uppercase">
-                    {officer.major.split(' & ')[0]}
+                    {officer.major}
                   </p>
                 </div>
               </div>

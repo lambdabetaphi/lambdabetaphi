@@ -107,15 +107,16 @@ export default function PortalAuth({ onLogin, onRegister, isSupabaseConfigured }
     setIsLoading(true);
     try {
       await onRegister({
-        name: regName.trim(),
+        full_name: regName.trim(),
         email: regEmail.trim().toLowerCase(),
-        role: 'Pending',
+        role: 'Member',
+        status: 'Pending',
         chapter: regChapter.trim(),
         batch: regBatch.trim() || 'Alpha Class 2026',
         position: 'Candidate Member',
-        avatarUrl: regAvatar,
+        avatar_url: regAvatar,
         phone: regPhone.trim(),
-        slaveName: regSlaveName.trim()
+        bio: regSlaveName.trim()
       }, regPassword || 'defaultpass123');
       
       // Toggle to login tab
@@ -492,14 +493,14 @@ export function PendingScreen({ user, onLogout }: PendingScreenProps) {
         
         <div className="flex items-center justify-center gap-3 p-3 bg-[#fbf9f4] border border-[#c5a059]/20">
           <img 
-            src={user.avatarUrl} 
-            alt={user.name} 
+            src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+            alt={user.full_name} 
             className="w-10 h-10 object-cover border border-[#c5a059]/30"
             referrerPolicy="no-referrer"
           />
           <div className="text-left text-xs">
-            <p className="font-bold text-navy-950 uppercase">{user.name}</p>
-            <p className="text-[10px] text-navy-500 font-mono tracking-wide uppercase">SLAVE: {user.slaveName}</p>
+            <p className="font-bold text-navy-950 uppercase">{user.full_name}</p>
+            <p className="text-[10px] text-navy-500 font-mono tracking-wide uppercase">BIO: {user.bio || 'Candidate'}</p>
             <p className="text-[9px] text-[#c5a059] font-bold uppercase tracking-wider">{user.chapter}</p>
           </div>
         </div>
@@ -512,7 +513,7 @@ export function PendingScreen({ user, onLogout }: PendingScreenProps) {
           <p className="uppercase font-bold text-navy-500 mb-1">Dossier Registry Details:</p>
           <p>&bull; EMAIL: {user.email}</p>
           <p>&bull; BATCH: {user.batch}</p>
-          <p>&bull; DATE APPLIED: {user.joinsDate || new Date().toISOString().split('T')[0]}</p>
+          <p>&bull; DATE APPLIED: {user.created_at ? new Date(user.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</p>
           <p>&bull; STATUS: Pending Verification</p>
         </div>
 

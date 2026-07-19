@@ -14,7 +14,7 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
   const [activeDossier, setActiveDossier] = useState<Member | null>(null);
 
   // Exclude pending users from general members directory
-  const activeMembers = members.filter(m => m.role !== 'Pending');
+  const activeMembers = members.filter(m => m.status !== 'Pending');
 
   // Gather unique chapters and batches for filter dropdowns
   const uniqueChapters = Array.from(new Set(activeMembers.map(m => m.chapter).filter(Boolean)));
@@ -22,9 +22,9 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
 
   const filteredMembers = activeMembers.filter(m => {
     const matchesSearch = 
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.slaveName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase());
+      (m.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.bio || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.email || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesChapter = chapterFilter === 'all' || m.chapter === chapterFilter;
     const matchesBatch = batchFilter === 'all' || m.batch === batchFilter;
     return matchesSearch && matchesChapter && matchesBatch;
@@ -120,18 +120,18 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
             )}
 
             <img 
-              src={m.avatarUrl} 
-              alt={m.name} 
+              src={m.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+              alt={m.full_name} 
               className="w-16 h-16 rounded-full object-cover border-2 border-navy-950/5 group-hover:border-[#c5a059] shadow-sm transition-colors mb-2.5"
               referrerPolicy="no-referrer"
             />
 
             <h4 className="font-bold text-navy-950 text-sm uppercase tracking-wide truncate max-w-full leading-tight">
-              {m.name}
+              {m.full_name}
             </h4>
             
             <p className="text-[10px] text-rose-600 font-mono font-bold uppercase mt-0.5">
-              SLAVE: {m.slaveName}
+              ROLE: {m.role}
             </p>
 
             <div className="mt-3 pt-2.5 border-t border-navy-950/5 w-full text-[10px] text-navy-500 space-y-1">
@@ -141,6 +141,7 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
             </div>
 
             <button
+              onClick={() => setActiveDossier(m)}
               className="mt-4 w-full py-2 bg-[#fbf9f4] border border-[#c5a059]/20 hover:bg-[#c5a059]/10 text-[#c5a059] text-[9px] font-bold uppercase tracking-widest rounded-lg transition-colors"
             >
               Review Dossier
@@ -178,8 +179,8 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
               <div className="flex justify-center">
                 <div className="p-1.5 bg-white rounded-full shadow-md border-2 border-[#c5a059]">
                   <img 
-                    src={activeDossier.avatarUrl} 
-                    alt={activeDossier.name} 
+                    src={activeDossier.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+                    alt={activeDossier.full_name} 
                     className="w-20 h-20 rounded-full object-cover"
                     referrerPolicy="no-referrer"
                   />
@@ -188,10 +189,10 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
 
               <div>
                 <h3 className="font-serif font-black text-navy-950 text-lg tracking-wide uppercase leading-tight">
-                  {activeDossier.name}
+                  {activeDossier.full_name}
                 </h3>
                 <p className="text-xs text-rose-600 font-mono font-bold uppercase mt-1">
-                  SLAVE NAME: {activeDossier.slaveName}
+                  ROLE: {activeDossier.role}
                 </p>
                 <p className="text-[10px] text-[#c5a059] font-bold uppercase tracking-widest mt-0.5">
                   {activeDossier.position || 'Active Initiate'}
@@ -201,11 +202,11 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
               <div className="p-4 bg-[#fbf9f4] border border-[#c5a059]/15 text-left rounded-xl text-xs space-y-3 text-navy-950">
                 <div className="flex items-center gap-3">
                   <Landmark className="w-4 h-4 text-[#c5a059] shrink-0" />
-                  <span><strong>Chapter:</strong> {activeDossier.chapter}</span>
+                  <span><strong>Chapter:</strong> {activeDossier.chapter || 'No Chapter'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Shield className="w-4 h-4 text-[#c5a059] shrink-0" />
-                  <span><strong>Batch Class:</strong> {activeDossier.batch}</span>
+                  <span><strong>Batch Class:</strong> {activeDossier.batch || 'No Batch'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-navy-400 shrink-0" />
@@ -213,17 +214,17 @@ export default function PortalDirectory({ members, currentUser }: PortalDirector
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-navy-400 shrink-0" />
-                  <span><strong>Phone Number:</strong> <a href={`tel:${activeDossier.phone}`} className="hover:underline text-navy-900 font-mono">{activeDossier.phone}</a></span>
+                  <span><strong>Phone Number:</strong> <a href={`tel:${activeDossier.phone}`} className="hover:underline text-navy-900 font-mono">{activeDossier.phone || 'No Phone'}</a></span>
                 </div>
-                {activeDossier.birthday && (
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span><strong>Date of Birth:</strong> {new Date(activeDossier.birthday).toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'})}</span>
+                {activeDossier.bio && (
+                  <div className="flex items-start gap-3">
+                    <User className="w-4 h-4 text-navy-400 shrink-0 mt-0.5" />
+                    <span><strong>Biography:</strong> {activeDossier.bio}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-navy-400 shrink-0" />
-                  <span><strong>Joined Association:</strong> {activeDossier.joinsDate || '2026-07-19'}</span>
+                  <span><strong>Joined Association:</strong> {activeDossier.created_at ? new Date(activeDossier.created_at).toLocaleDateString() : 'New'}</span>
                 </div>
               </div>
 

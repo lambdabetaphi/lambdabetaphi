@@ -11,13 +11,12 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
   const [isEditing, setIsEditing] = useState(false);
   
   // Edit Profile States
-  const [editName, setEditName] = useState(currentUser.name);
-  const [editChapter, setEditChapter] = useState(currentUser.chapter);
-  const [editBatch, setEditBatch] = useState(currentUser.batch);
-  const [editSlaveName, setEditSlaveName] = useState(currentUser.slaveName);
-  const [editPhone, setEditPhone] = useState(currentUser.phone);
-  const [editBirthday, setEditBirthday] = useState(currentUser.birthday || '');
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatarUrl);
+  const [editName, setEditName] = useState(currentUser.full_name || '');
+  const [editChapter, setEditChapter] = useState(currentUser.chapter || '');
+  const [editBatch, setEditBatch] = useState(currentUser.batch || '');
+  const [editBio, setEditBio] = useState(currentUser.bio || '');
+  const [editPhone, setEditPhone] = useState(currentUser.phone || '');
+  const [editAvatar, setEditAvatar] = useState(currentUser.avatar_url || '');
   const [dragActive, setDragActive] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,13 +58,12 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
     e.preventDefault();
     onUpdateProfile({
       ...currentUser,
-      name: editName.trim(),
+      full_name: editName.trim(),
       chapter: editChapter.trim(),
       batch: editBatch.trim(),
-      slaveName: editSlaveName.trim(),
+      bio: editBio.trim(),
       phone: editPhone.trim(),
-      birthday: editBirthday || undefined,
-      avatarUrl: editAvatar
+      avatar_url: editAvatar
     });
     setIsEditing(false);
   };
@@ -77,7 +75,7 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
         {/* Decorative Golden Background */}
         <div className="h-16 bg-gradient-to-r from-navy-950 via-[#c5a059]/20 to-navy-900 relative">
           <div className="absolute top-2 right-3 px-2 py-0.5 bg-gold-500/90 text-navy-950 text-[8px] font-bold uppercase tracking-widest rounded-full">
-            Active
+            {currentUser.status}
           </div>
         </div>
         
@@ -86,8 +84,8 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
           <div className="flex justify-center -mt-10 mb-2 relative z-10">
             <div className="p-1 bg-white rounded-full shadow-md border-2 border-[#c5a059]">
               <img 
-                src={currentUser.avatarUrl} 
-                alt={currentUser.name} 
+                src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+                alt={currentUser.full_name} 
                 className="w-16 h-16 rounded-full object-cover"
                 referrerPolicy="no-referrer"
               />
@@ -95,7 +93,7 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
           </div>
 
           <h3 className="font-serif font-black text-navy-950 text-base tracking-wide uppercase leading-tight">
-            {currentUser.name}
+            {currentUser.full_name}
           </h3>
           <p className="text-[10px] text-gold-600 font-bold uppercase tracking-wider mt-0.5">
             {currentUser.position || 'Initiate Member'}
@@ -104,19 +102,21 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
           <div className="mt-4 pt-3 border-t border-navy-950/5 text-left text-xs space-y-2 text-navy-950/80">
             <div className="flex items-center gap-2">
               <Landmark className="w-3.5 h-3.5 text-navy-400 shrink-0" />
-              <span className="truncate"><strong>Chapter:</strong> {currentUser.chapter}</span>
+              <span className="truncate"><strong>Chapter:</strong> {currentUser.chapter || 'No Chapter'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Shield className="w-3.5 h-3.5 text-navy-400 shrink-0" />
-              <span className="truncate"><strong>Batch:</strong> {currentUser.batch}</span>
+              <span className="truncate"><strong>Batch:</strong> {currentUser.batch || 'No Batch'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <User className="w-3.5 h-3.5 text-navy-400 shrink-0" />
-              <span className="truncate"><strong>Slave Name:</strong> <span className="font-mono text-rose-600 font-bold">{currentUser.slaveName}</span></span>
-            </div>
+            {currentUser.bio && (
+              <div className="flex items-start gap-2">
+                <User className="w-3.5 h-3.5 text-navy-400 shrink-0 mt-0.5" />
+                <span className="line-clamp-2"><strong>Bio:</strong> {currentUser.bio}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-navy-400 shrink-0" />
-              <span className="truncate"><strong>Joined:</strong> {currentUser.joinsDate || '2026-07-19'}</span>
+              <span className="truncate"><strong>Joined:</strong> {currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString() : 'New'}</span>
             </div>
           </div>
 
@@ -192,13 +192,13 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                    Slave Name
+                    Short Bio / Quote
                   </label>
                   <input
                     type="text"
                     required
-                    value={editSlaveName}
-                    onChange={(e) => setEditSlaveName(e.target.value)}
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
                     className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
                   />
                 </div>
@@ -214,18 +214,6 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                     className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                  Birthday (YYYY-MM-DD)
-                </label>
-                <input
-                  type="date"
-                  value={editBirthday}
-                  onChange={(e) => setEditBirthday(e.target.value)}
-                  className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                />
               </div>
 
               <div>
@@ -326,28 +314,16 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
   }).slice(0, 3);
 
   // 2. Events filter (upcoming, limit to 3)
-  const displayEvents = [...events].filter(e => new Date(e.date).getTime() >= new Date().setHours(0,0,0,0)).slice(0, 3);
+  const displayEvents = [...events].filter(e => new Date(e.event_date).getTime() >= new Date().setHours(0,0,0,0)).slice(0, 3);
 
-  // 3. Celebrants filter (checking birthday month and day matches close)
-  const today = new Date();
-  const currentMonth = today.getMonth(); // 0-indexed
-  const currentDay = today.getDate();
-
-  const birthdayCelebrants = members.filter(m => {
-    if (!m.birthday || m.role === 'Pending') return false;
-    const bDate = new Date(m.birthday);
-    // Is celebrant in current month?
-    return bDate.getMonth() === currentMonth;
-  });
-
-  // 4. Newly approved (Active members sorted by joinsDate desc, limit 3)
+  // 3. Newly approved (Active members sorted by created_at desc, limit 3)
   const newlyApproved = [...members]
-    .filter(m => m.role !== 'Pending' && m.joinsDate)
-    .sort((a, b) => new Date(b.joinsDate).getTime() - new Date(a.joinsDate).getTime())
+    .filter(m => m.status !== 'Pending')
+    .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
     .slice(0, 3);
 
-  // 5. Active online (simulated online or actually online)
-  const onlineMembers = members.filter(m => m.isOnline && m.role !== 'Pending');
+  // 4. Online members (simulated: all approved members)
+  const onlineMembers = members.filter(m => m.status !== 'Pending');
 
   return (
     <div className="space-y-4 font-sans text-xs">
@@ -392,8 +368,7 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
                   {ann.content}
                 </p>
                 <div className="flex items-center gap-1.5 text-[8.5px] text-navy-400 font-mono">
-                  <img src={ann.author_avatar} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
-                  <span>{ann.author_name}</span>
+                  <span className="font-bold">{members.find(m => m.id === ann.created_by)?.full_name || 'Administrator'}</span>
                   <span>&bull;</span>
                   <span>{new Date(ann.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
                 </div>
@@ -423,16 +398,16 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
         {displayEvents.length > 0 ? (
           <div className="space-y-3">
             {displayEvents.map(e => {
-              const isRsvpd = e.rsvps.includes(currentUser.id) || e.rsvps.includes(currentUser.email);
+              const isRsvpd = (e.rsvps || []).includes(currentUser.id);
               return (
                 <div key={e.id} className="flex gap-2.5 items-start p-1 hover:bg-navy-50/20 rounded-xl transition-colors">
                   {/* Calendar badge */}
                   <div className="w-10 h-11 bg-[#fbf9f4] border border-[#c5a059]/20 flex flex-col items-center justify-center rounded-lg shadow-sm shrink-0">
                     <span className="text-[7.5px] font-bold text-[#c5a059] uppercase tracking-wider">
-                      {new Date(e.date).toLocaleDateString(undefined, {month: 'short'})}
+                      {new Date(e.event_date).toLocaleDateString(undefined, {month: 'short'})}
                     </span>
                     <span className="text-sm font-serif font-black text-navy-950 -mt-0.5">
-                      {new Date(e.date).getDate()}
+                      {new Date(e.event_date).getDate()}
                     </span>
                   </div>
 
@@ -440,14 +415,14 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
                     <p className="font-bold text-navy-950 text-[10.5px] truncate leading-tight">{e.title}</p>
                     <div className="flex items-center gap-1.5 text-[8.5px] text-navy-400 font-mono mt-0.5">
                       <Clock className="w-2.5 h-2.5 text-navy-400 shrink-0" />
-                      <span>{e.time}</span>
+                      <span>{new Date(e.event_date).toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'})}</span>
                       <span>&bull;</span>
                       <span className="truncate max-w-[80px]">{e.location}</span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2 mt-1.5">
                       <span className="text-[9px] text-navy-400 font-mono font-bold uppercase">
-                        {e.rsvps.length} RSVP'd
+                        {e.rsvps?.length || 0} RSVP'd
                       </span>
                       <button
                         onClick={() => onRsvp(e.id)}
@@ -470,41 +445,10 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
         )}
       </div>
 
-      {/* Birthday Celebrants Widget */}
-      <div className="bg-white rounded-2xl shadow-sm border border-navy-950/5 p-4">
-        <h4 className="font-serif font-black text-navy-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5 mb-2.5 pb-2 border-b border-navy-950/5">
-          <Award className="w-4 h-4 text-rose-500 animate-spin" style={{ animationDuration: '6s' }} />
-          Birthday Honors
-        </h4>
-        
-        {birthdayCelebrants.length > 0 ? (
-          <div className="space-y-2">
-            {birthdayCelebrants.map(cel => (
-              <div key={cel.id} className="flex items-center gap-2.5 p-1">
-                <img 
-                  src={cel.avatarUrl} 
-                  alt="" 
-                  className="w-7 h-7 rounded-full object-cover border border-[#c5a059]/30 shadow-sm" 
-                  referrerPolicy="no-referrer"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-navy-950 text-[10.5px] truncate">{cel.name}</p>
-                  <p className="text-[8.5px] text-[#c5a059] font-mono uppercase tracking-wider font-bold">
-                    {new Date(cel.birthday || '').toLocaleDateString(undefined, {month: 'long', day: 'numeric'})}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[10px] text-navy-400 py-2.5 text-center italic">No celebrants this month.</p>
-        )}
-      </div>
-
       {/* Newly Approved Members Widget */}
       <div className="bg-white rounded-2xl shadow-sm border border-navy-950/5 p-4">
         <h4 className="font-serif font-black text-navy-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5 mb-2.5 pb-2 border-b border-navy-950/5">
-          <Users className="w-4 h-4 text-indigo-500" />
+          <Users className="w-4 h-4 text-[#c5a059]" />
           Newly Sealed Members
         </h4>
 
@@ -513,15 +457,15 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
             {newlyApproved.map(mem => (
               <div key={mem.id} className="flex items-center gap-2.5 p-1">
                 <img 
-                  src={mem.avatarUrl} 
+                  src={mem.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
                   alt="" 
                   className="w-7 h-7 rounded-full object-cover border border-navy-950/15 shadow-sm"
                   referrerPolicy="no-referrer"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-navy-950 text-[10.5px] truncate leading-tight">{mem.name}</p>
+                  <p className="font-bold text-navy-950 text-[10.5px] truncate leading-tight">{mem.full_name}</p>
                   <p className="text-[8.5px] text-navy-400 font-mono uppercase truncate tracking-wider">
-                    {mem.chapter} &bull; {mem.batch}
+                    {mem.chapter || 'No Chapter'} &bull; {mem.batch || 'No Batch'}
                   </p>
                 </div>
               </div>
@@ -548,8 +492,8 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
               <div key={mem.id} className="relative group flex justify-center">
                 <div className="relative">
                   <img 
-                    src={mem.avatarUrl} 
-                    alt={mem.name} 
+                    src={mem.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+                    alt={mem.full_name} 
                     className="w-8 h-8 rounded-full object-cover border border-white ring-1 ring-emerald-500 shadow-md cursor-pointer hover:scale-105 transition-transform"
                     referrerPolicy="no-referrer"
                   />
@@ -557,7 +501,7 @@ export function RightSidebar({ announcements, events, members, onRsvp, currentUs
                 </div>
                 {/* Tooltip */}
                 <div className="absolute bottom-full mb-1.5 hidden group-hover:block bg-navy-950 text-white text-[8px] uppercase tracking-widest font-bold px-2 py-1 rounded-md whitespace-nowrap z-30 shadow-xl border border-[#c5a059]/20 font-mono">
-                  {mem.name.split(' ')[0]} ({mem.slaveName})
+                  {mem.full_name.split(' ')[0]}
                 </div>
               </div>
             ))}

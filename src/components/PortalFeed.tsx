@@ -133,8 +133,8 @@ export function PortalFeed({ currentUser, posts, comments, onAddPost, onLikePost
         <form onSubmit={handleCreatePostSubmit} className="space-y-3.5">
           <div className="flex gap-3">
             <img 
-              src={currentUser.avatarUrl} 
-              alt={currentUser.name} 
+              src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+              alt={currentUser.full_name} 
               className="w-10 h-10 rounded-full object-cover border border-navy-950/10 shadow-sm shrink-0"
               referrerPolicy="no-referrer"
             />
@@ -142,7 +142,7 @@ export function PortalFeed({ currentUser, posts, comments, onAddPost, onLikePost
               <textarea
                 value={newPostText}
                 onChange={(e) => setNewPostText(e.target.value)}
-                placeholder={`What's on your mind, ${currentUser.name.split(' ')[0]}?`}
+                placeholder={`What's on your mind, ${(currentUser.full_name || '').split(' ')[0]}?`}
                 rows={2}
                 className="w-full resize-none border-0 focus:ring-0 text-navy-950 text-xs placeholder-navy-400 p-1.5 focus:outline-none min-h-[50px]"
               />
@@ -220,7 +220,7 @@ export function PortalFeed({ currentUser, posts, comments, onAddPost, onLikePost
       <div className="space-y-4">
         {posts.length > 0 ? (
           posts.map(post => {
-            const hasLiked = post.liked_by.includes(currentUser.id);
+            const hasLiked = (post.liked_by || []).includes(currentUser.id);
             const postComments = comments.filter(c => c.post_id === post.id);
 
             return (
@@ -230,21 +230,17 @@ export function PortalFeed({ currentUser, posts, comments, onAddPost, onLikePost
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <img 
-                      src={post.author_avatar} 
+                      src={post.member_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
                       alt="" 
                       className="w-10 h-10 rounded-full object-cover border border-[#c5a059]/20"
+                      referrerPolicy="no-referrer"
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h4 className="font-bold text-navy-950 text-xs uppercase tracking-wide">{post.author_name}</h4>
-                        {post.author_slave_name && (
-                          <span className="text-[8px] font-mono text-rose-600 font-bold uppercase tracking-wider px-1 bg-rose-50 rounded">
-                            {post.author_slave_name}
-                          </span>
-                        )}
+                        <h4 className="font-bold text-navy-950 text-xs uppercase tracking-wide">{post.member_name || 'Fraternity Member'}</h4>
                       </div>
                       <p className="text-[9px] text-navy-400 font-medium tracking-wide">
-                        {post.author_chapter} &bull; {getRelativeTime(post.created_at)}
+                        {post.member_chapter || 'Active Chapter'} &bull; {getRelativeTime(post.created_at)}
                       </p>
                     </div>
                   </div>
@@ -327,16 +323,17 @@ export function PortalFeed({ currentUser, posts, comments, onAddPost, onLikePost
                     {postComments.map(c => (
                       <div key={c.id} className="flex gap-2 text-[10.5px]">
                         <img 
-                          src={c.author_avatar} 
+                          src={c.member_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
                           alt="" 
                           className="w-7 h-7 rounded-full object-cover shrink-0 border border-navy-950/5 mt-0.5"
+                          referrerPolicy="no-referrer"
                         />
                         <div className="bg-[#fbf9f4] p-2.5 rounded-2xl flex-1 max-w-[85%] border border-navy-950/5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-bold text-navy-950 uppercase text-[9px]">{c.author_name}</span>
+                            <span className="font-bold text-navy-950 uppercase text-[9px]">{c.member_name || 'Anonymous'}</span>
                             <span className="text-[8px] text-navy-400 font-mono">{getRelativeTime(c.created_at)}</span>
                           </div>
-                          <p className="text-navy-950/80 leading-relaxed font-sans mt-0.5 whitespace-pre-wrap">{c.content}</p>
+                          <p className="text-navy-950/80 leading-relaxed font-sans mt-0.5 whitespace-pre-wrap">{c.comment}</p>
                         </div>
                       </div>
                     ))}
@@ -348,7 +345,7 @@ export function PortalFeed({ currentUser, posts, comments, onAddPost, onLikePost
                   onSubmit={(e) => handleCommentSubmit(e, post.id)} 
                   className="flex gap-2 items-center pt-1.5"
                 >
-                  <img src={currentUser.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                  <img src={currentUser.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
                   <input
                     id={`comment_input_${post.id}`}
                     type="text"
