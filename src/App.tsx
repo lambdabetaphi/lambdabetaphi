@@ -581,13 +581,9 @@ export default function App() {
           <MemberPortal
             members={members}
             currentUser={currentUser}
-            bulletin={bulletin}
             onLogin={handleLogin}
             onLogout={handleLogout}
             onRegister={handleRegister}
-            onAddBulletinPost={handleAddBulletinPost}
-            onAddBulletinReply={handleAddBulletinReply}
-            onPayDues={handlePayDues}
             onUpdateMembers={saveMembers}
           />
         );
