@@ -585,6 +585,7 @@ export default function App() {
             onLogout={handleLogout}
             onRegister={handleRegister}
             onUpdateMembers={saveMembers}
+            onNavigateToPublic={() => setActiveTab('home')}
           />
         );
       default:
@@ -592,16 +593,20 @@ export default function App() {
     }
   };
 
+  const showGlobalNav = !(activeTab === 'portal' && currentUser && currentUser.role !== 'Pending');
+
   return (
     <div className="flex flex-col min-h-screen bg-navy-50 font-sans antialiased text-navy-950 selection:bg-gold-200 selection:text-navy-950">
       
       {/* 1. Header Navigation */}
-      <Navigation 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        currentUser={currentUser}
-        onLogout={handleLogout}
-      />
+      {showGlobalNav && (
+        <Navigation 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          currentUser={currentUser}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* 2. Main Body Stage */}
       <main className="flex-grow">

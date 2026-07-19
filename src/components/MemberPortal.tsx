@@ -3,7 +3,7 @@ import {
   Shield, Lock, User, Mail, Search, Award, CheckCircle, MessageSquare, Send, 
   Phone, MapPin, Crown, Settings, Trash2, Plus, X, Upload, Image, Bell, BookOpen, 
   Users, FolderOpen, Calendar, Volume2, LogOut, ChevronRight, Menu, HelpCircle, 
-  Activity, Clock, Compass, Info, AlertCircle 
+  Activity, Clock, Compass, Info, AlertCircle, ExternalLink 
 } from 'lucide-react';
 
 import { Member, Post, Comment, Announcement, Event, Notification, GalleryItem } from '../types';
@@ -25,6 +25,7 @@ interface MemberPortalProps {
   onLogout: () => void;
   onRegister: (newMember: Omit<Member, 'id' | 'joinsDate'>, password?: string) => void;
   onUpdateMembers?: (updatedMembers: Member[]) => void;
+  onNavigateToPublic?: () => void;
 }
 
 export default function MemberPortal({
@@ -33,7 +34,8 @@ export default function MemberPortal({
   onLogin,
   onLogout,
   onRegister,
-  onUpdateMembers
+  onUpdateMembers,
+  onNavigateToPublic
 }: MemberPortalProps) {
 
   // Global Portal active Navigation Tab
@@ -451,6 +453,17 @@ export default function MemberPortal({
           {/* Right section: Navigation controls */}
           <div className="flex items-center gap-3.5">
             
+            {onNavigateToPublic && (
+              <button
+                onClick={onNavigateToPublic}
+                className="text-[10px] text-gold-400 hover:text-white border border-[#c5a059]/30 hover:border-white px-2.5 py-1.5 font-bold uppercase tracking-wider transition-all rounded-lg shrink-0 flex items-center gap-1"
+                title="Return to Public Website"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Public Site</span>
+              </button>
+            )}
+
             {/* Notification bell and badge */}
             <div className="relative">
               <button
@@ -660,7 +673,7 @@ export default function MemberPortal({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               
               {/* Left sidebar: Member Profile card (Desktop 3cols, hidden mobile) */}
-              <div className="hidden lg:block lg:col-span-3.5">
+              <div className="hidden lg:block lg:col-span-3">
                 <LeftSidebar 
                   currentUser={currentUser} 
                   onUpdateProfile={handleUpdateProfile} 
@@ -668,7 +681,7 @@ export default function MemberPortal({
               </div>
 
               {/* Middle center: Timeline feed */}
-              <div className="col-span-1 lg:col-span-5.5">
+              <div className="col-span-1 lg:col-span-6">
                 <PortalFeed
                   currentUser={currentUser}
                   posts={posts}
