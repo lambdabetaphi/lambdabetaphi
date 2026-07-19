@@ -1,0 +1,6 @@
+{
+  "name": "Lambda Beta Phi Portal",
+  "description": "Official landing page, news, events, and member portal for the Lambda Beta Phi Fraternity & Sorority.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
