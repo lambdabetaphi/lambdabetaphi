@@ -22,7 +22,10 @@ import {
   Trash2,
   Plus,
   Minus,
-  Settings
+  Settings,
+  Upload,
+  Image,
+  X
 } from 'lucide-react';
 import { Member, BulletinPost, BulletinReply } from '../types';
 import CrestLogo from './CrestLogo';
@@ -80,6 +83,42 @@ export default function MemberPortal({
   const [regChapter, setRegChapter] = useState('');
   const [regSlaveName, setRegSlaveName] = useState('');
   const [regAvatar, setRegAvatar] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setRegAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setRegAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -412,16 +451,73 @@ export default function MemberPortal({
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                      Profile Picture URL <span className="text-red-500">*</span>
+                      Profile Picture <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="url"
-                      required
-                      placeholder="https://images.unsplash.com/photo-..."
-                      value={regAvatar}
-                      onChange={(e) => setRegAvatar(e.target.value)}
-                      className="w-full p-3 rounded-none border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
-                    />
+                    <div 
+                      onDragEnter={handleDrag}
+                      onDragOver={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleDrop}
+                      className={`relative flex flex-col items-center justify-center border-2 border-dashed p-4 text-center transition-all min-h-[105px] ${
+                        dragActive 
+                          ? 'border-gold-500 bg-gold-50/30' 
+                          : regAvatar 
+                            ? 'border-[#c5a059]/40 bg-[#fbf9f4]' 
+                            : 'border-navy-950/15 hover:border-[#c5a059]/50 bg-white'
+                      }`}
+                    >
+                      {regAvatar ? (
+                        <div className="flex items-center gap-3 w-full">
+                          <img 
+                            src={regAvatar} 
+                            alt="Preview" 
+                            className="w-12 h-12 object-cover rounded-none border border-navy-950/20 shadow-sm"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="flex-1 text-left">
+                            <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              Image Selected
+                            </p>
+                            <p className="text-[8px] text-navy-500 uppercase tracking-wider font-mono">Ready for registration</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setRegAvatar('')}
+                            className="p-1.5 hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-none transition-colors"
+                            title="Remove image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full py-2">
+                          <Upload className="w-5 h-5 text-navy-400 mb-1.5" />
+                          <p className="text-[10px] font-bold text-navy-950 uppercase tracking-wider mb-0.5">
+                            Upload Photo
+                          </p>
+                          <p className="text-[8px] text-navy-500 uppercase tracking-wider font-mono">
+                            Drag & Drop or Click to browse
+                          </p>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                      
+                      {/* Hidden required input for HTML5 form validation */}
+                      <input
+                        type="text"
+                        required
+                        value={regAvatar}
+                        onChange={() => {}}
+                        tabIndex={-1}
+                        className="opacity-0 absolute pointer-events-none w-1 h-1 bottom-0"
+                      />
+                    </div>
                   </div>
                 </div>
 
