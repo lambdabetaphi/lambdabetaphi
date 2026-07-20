@@ -37,17 +37,120 @@ export default function App() {
   const [events, setEvents] = useState<Event[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  // 1. Initial State Loading from Supabase or Fallback
-  useEffect(() => {
-    const cachedUser = localStorage.getItem('lbp_current_user');
-    if (cachedUser) {
-      setCurrentUser(JSON.parse(cachedUser));
+  // 1. Auth Session Handler and Initial State Loading
+  const handleAuthSession = async (session: any) => {
+    if (!session?.user) {
+      setCurrentUser(null);
+      return;
     }
 
+    const authUser = session.user;
+    const emailLower = authUser.email?.toLowerCase().trim() || '';
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        // Retrieve member profile details from members table
+        const { data: profile, error: dbError } = await supabase
+          .from('members')
+          .select('*')
+          .eq('id', authUser.id)
+          .maybeSingle();
+
+        if (dbError) {
+          console.warn('Error retrieving member from Supabase table:', dbError.message);
+        }
+
+        if (!profile) {
+          // Automatically create a member profile in the members table
+          const fullName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Initiate Member';
+          const avatarUrl = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+          
+          const isMe = emailLower === 'roderickdanzing04@gmail.com';
+          
+          const newMember: Member = {
+            id: authUser.id,
+            full_name: fullName,
+            email: emailLower,
+            role: isMe ? 'Admin' : 'Member',
+            status: isMe ? 'Approved' : 'Pending',
+            chapter: 'Bohol Alpha',
+            batch: 'Alpha Class 2026',
+            position: isMe ? 'National Advisor' : 'Candidate Member',
+            avatar_url: avatarUrl,
+            phone: '',
+            bio: 'Private Registry Member'
+          };
+
+          // Map for backwards compatibility
+          const newMemberFull = {
+            ...newMember,
+            name: fullName,
+            avatarUrl: avatarUrl,
+            slaveName: 'Private Registry Member',
+            joinsDate: new Date().toISOString().split('T')[0]
+          };
+
+          // Write to database
+          const { error: insertError } = await supabase
+            .from('members')
+            .insert([newMember]);
+
+          if (insertError) {
+            console.warn('Failed to insert new member profile:', insertError.message);
+          }
+
+          // Add to active state
+          setMembers(prev => {
+            if (!prev.some(m => m.id === newMember.id)) {
+              return [...prev, newMemberFull as any];
+            }
+            return prev;
+          });
+
+          setCurrentUser(newMemberFull as any);
+        } else {
+          const isMe = emailLower === 'roderickdanzing04@gmail.com';
+          const existingMember = profile as Member;
+          
+          // Ensure Roderick has Admin and Approved status
+          if (isMe && (existingMember.role !== 'Admin' || existingMember.status !== 'Approved')) {
+            existingMember.role = 'Admin';
+            existingMember.status = 'Approved';
+            await supabase.from('members').update({ role: 'Admin', status: 'Approved' }).eq('id', existingMember.id);
+          }
+
+          // Map to both camelCase and snake_case for maximum compatibility with the UI
+          const mappedUser = {
+            ...existingMember,
+            name: existingMember.full_name || (existingMember as any).name || 'Initiate Member',
+            avatarUrl: existingMember.avatar_url || (existingMember as any).avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+            slaveName: existingMember.bio || (existingMember as any).slaveName || 'Candidate Member',
+            joinsDate: existingMember.created_at ? new Date(existingMember.created_at).toISOString().split('T')[0] : (existingMember as any).joinsDate || new Date().toISOString().split('T')[0]
+          };
+
+          setCurrentUser(mappedUser as any);
+        }
+      } catch (err) {
+        console.error('Error handling auth session:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
     const loadAllData = async () => {
       try {
         const dbMembers = await dbService.getMembers();
-        setMembers(dbMembers);
+        
+        // Ensure all loaded members are mapped for maximum compatibility with the UI
+        const mappedMembers = dbMembers.map(m => ({
+          ...m,
+          name: m.full_name || (m as any).name || 'Initiate Member',
+          avatarUrl: m.avatar_url || (m as any).avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+          slaveName: m.bio || (m as any).slaveName || 'Candidate Member',
+          joinsDate: m.created_at ? new Date(m.created_at).toISOString().split('T')[0] : (m as any).joinsDate || new Date().toISOString().split('T')[0]
+        }));
+        
+        setMembers(mappedMembers as any);
 
         const dbEvents = await dbService.getEvents();
         setEvents(dbEvents);
@@ -60,6 +163,23 @@ export default function App() {
     };
 
     loadAllData();
+
+    // Single source of truth for auth
+    if (isSupabaseConfigured && supabase) {
+      // Get initial session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        handleAuthSession(session);
+      });
+
+      // Listen to auth state changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        handleAuthSession(session);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   // 2. State Synchronizers
@@ -86,86 +206,67 @@ export default function App() {
   const handleLogin = async (email: string, password?: string): Promise<boolean> => {
     const emailLower = email.toLowerCase().trim();
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        if (!password) {
-          showToast('Password is required for Supabase authentication.', 'error');
-          return false;
-        }
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email: emailLower,
-          password: password
-        });
+    if (!isSupabaseConfigured || !supabase) {
+      showToast('Supabase is not configured.', 'error');
+      return false;
+    }
 
-        if (authError) {
-          showToast(`Authentication Error: ${authError.message}`, 'error');
-          return false;
-        }
-
-        // Fetch member profile details from the custom table
-        const { data: profile, error: dbError } = await supabase
-          .from('members')
-          .select('*')
-          .eq('email', emailLower)
-          .single();
-
-        if (dbError || !profile) {
-          console.warn('Profile entry not found in members table. checking fallback.');
-          const localMatched = members.find(m => m.email.toLowerCase() === emailLower);
-          if (localMatched) {
-            setCurrentUser(localMatched);
-            localStorage.setItem('lbp_current_user', JSON.stringify(localMatched));
-            showToast(`Successfully logged in! Welcome ${localMatched.full_name}.`, 'success');
-            setActiveTab('portal');
-            return true;
-          } else {
-            showToast('Authentication succeeded, but no matching profile exists in the chapter ledger.', 'error');
-            return false;
-          }
-        }
-
-        const memberProfile = profile as Member;
-        // Enforce admin privileges for specific email
-        if (emailLower === 'roderickdanzing04@gmail.com' && memberProfile.role !== 'Admin') {
-          memberProfile.role = 'Admin';
-          await supabase.from('members').update({ role: 'Admin' }).eq('id', memberProfile.id);
-        }
-
-        setCurrentUser(memberProfile);
-        localStorage.setItem('lbp_current_user', JSON.stringify(memberProfile));
-        showToast(
-          memberProfile.role === 'Admin'
-            ? `Welcome back, Administrator ${memberProfile.full_name}!`
-            : `Welcome back, Initiate ${memberProfile.full_name}!`,
-          'success'
-        );
-        setActiveTab('portal');
-        return true;
-      } catch (err: any) {
-        showToast(`Login failed: ${err.message || err}`, 'error');
+    try {
+      if (!password) {
+        showToast('Password is required for authentication.', 'error');
         return false;
       }
-    }
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: emailLower,
+        password: password
+      });
 
-    const matched = members.find(m => m.email.toLowerCase() === emailLower);
-    if (matched) {
-      // Force admin role if you log in with your email
-      if (matched.email.toLowerCase() === 'roderickdanzing04@gmail.com' && matched.role !== 'Admin') {
-        matched.role = 'Admin';
-        const updated = members.map(m => m.id === matched.id ? matched : m);
-        saveMembers(updated);
+      if (authError) {
+        showToast(`Authentication Error: ${authError.message}`, 'error');
+        return false;
       }
-      setCurrentUser(matched);
-      localStorage.setItem('lbp_current_user', JSON.stringify(matched));
-      if (matched.role === 'Admin') {
-        showToast(`Welcome back, Administrator ${matched.full_name}!`, 'success');
-      } else {
-        showToast(`Welcome back, Initiate ${matched.full_name}!`, 'success');
+
+      // Fetch member profile details from the custom table
+      const { data: profile, error: dbError } = await supabase
+        .from('members')
+        .select('*')
+        .eq('email', emailLower)
+        .single();
+
+      if (dbError || !profile) {
+        showToast('Authentication succeeded, but no matching profile exists in the chapter ledger.', 'error');
+        return false;
       }
+
+      const memberProfile = profile as Member;
+      // Enforce admin privileges for specific email
+      if (emailLower === 'roderickdanzing04@gmail.com' && memberProfile.role !== 'Admin') {
+        memberProfile.role = 'Admin';
+        memberProfile.status = 'Approved';
+        await supabase.from('members').update({ role: 'Admin', status: 'Approved' }).eq('id', memberProfile.id);
+      }
+
+      const mappedUser = {
+        ...memberProfile,
+        name: memberProfile.full_name || (memberProfile as any).name || 'Initiate Member',
+        avatarUrl: memberProfile.avatar_url || (memberProfile as any).avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        slaveName: memberProfile.bio || (memberProfile as any).slaveName || 'Candidate Member',
+        joinsDate: memberProfile.created_at ? new Date(memberProfile.created_at).toISOString().split('T')[0] : (memberProfile as any).joinsDate || new Date().toISOString().split('T')[0]
+      };
+
+      setCurrentUser(mappedUser as any);
+      showToast(
+        mappedUser.role === 'Admin'
+          ? `Welcome back, Administrator ${mappedUser.name}!`
+          : `Welcome back, Initiate ${mappedUser.name}!`,
+        'success'
+      );
       setActiveTab('portal');
       return true;
+    } catch (err: any) {
+      showToast(`Login failed: ${err.message || err}`, 'error');
+      return false;
     }
-    return false;
   };
 
   const handleLogout = async () => {
@@ -177,7 +278,6 @@ export default function App() {
       }
     }
     setCurrentUser(null);
-    localStorage.removeItem('lbp_current_user');
     showToast('Secure session closed.', 'info');
     setActiveTab('home');
   };
@@ -189,80 +289,78 @@ export default function App() {
     const emailLower = newMemberData.email.toLowerCase().trim();
     const isMe = emailLower === 'roderickdanzing04@gmail.com';
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        if (!password) {
-          showToast('Password is required for Supabase registration.', 'error');
-          return;
-        }
+    if (!isSupabaseConfigured || !supabase) {
+      showToast('Supabase is not configured.', 'error');
+      return;
+    }
 
-        // Register the user with Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: emailLower,
-          password: password
-        });
-
-        if (authError) {
-          showToast(`Supabase Auth Error: ${authError.message}`, 'error');
-          return;
-        }
-
-        const userId = authData.user?.id || `m${members.length + 1}`;
-        const newMember: Member = {
-          ...newMemberData,
-          id: userId,
-          role: isMe ? 'Admin' : 'Member',
-          status: isMe ? 'Approved' : 'Pending'
-        };
-
-        // Write profile details to the members table
-        const { error: dbError } = await supabase.from('members').insert([newMember]);
-        if (dbError) {
-          console.warn('Database insert failed. Storing locally. Error:', dbError.message);
-        }
-
-        // Update application state
-        const updated = [...members, newMember];
-        await saveMembers(updated);
-
-        // Auto log in user
-        setCurrentUser(newMember);
-        localStorage.setItem('lbp_current_user', JSON.stringify(newMember));
-        showToast(
-          isMe
-            ? 'Welcome, Administrator! System access fully unlocked.'
-            : 'Congratulations! Registration complete. Welcome to the chapter!',
-          'success'
-        );
-      } catch (err: any) {
-        showToast(`Registration failed: ${err.message || err}`, 'error');
+    try {
+      if (!password) {
+        showToast('Password is required for registration.', 'error');
+        return;
       }
-      return;
-    }
 
-    const isEmailTaken = members.some(m => m.email.toLowerCase() === emailLower);
-    if (isEmailTaken) {
-      showToast('This email is already registered.', 'error');
-      return;
-    }
+      // Register the user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: emailLower,
+        password: password
+      });
 
-    const newMember: Member = {
-      ...newMemberData,
-      id: `m${members.length + 1}`,
-      role: isMe ? 'Admin' : 'Member',
-      status: isMe ? 'Approved' : 'Pending'
-    };
+      if (authError) {
+        showToast(`Supabase Auth Error: ${authError.message}`, 'error');
+        return;
+      }
 
-    const updated = [...members, newMember];
-    saveMembers(updated);
-    
-    // Automatically log in the registered user
-    setCurrentUser(newMember);
-    localStorage.setItem('lbp_current_user', JSON.stringify(newMember));
-    if (isMe) {
-      showToast('Welcome, Administrator! System access fully unlocked.', 'success');
-    } else {
-      showToast('Congratulations! Registration complete. Welcome to the chapter!', 'success');
+      const userId = authData.user?.id;
+      if (!userId) {
+        showToast('Registration succeeded, but user ID could not be retrieved.', 'error');
+        return;
+      }
+
+      const newMember: Member = {
+        ...newMemberData,
+        id: userId,
+        role: isMe ? 'Admin' : 'Member',
+        status: isMe ? 'Approved' : 'Pending'
+      };
+
+      // Write profile details to the members table
+      const { error: dbError } = await supabase.from('members').insert([newMember]);
+      if (dbError) {
+        console.warn('Database insert failed. Error:', dbError.message);
+      }
+
+      // Reload members list
+      const dbMembers = await dbService.getMembers();
+      
+      const mappedMembers = dbMembers.map(m => ({
+        ...m,
+        name: m.full_name || (m as any).name || 'Initiate Member',
+        avatarUrl: m.avatar_url || (m as any).avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        slaveName: m.bio || (m as any).slaveName || 'Candidate Member',
+        joinsDate: m.created_at ? new Date(m.created_at).toISOString().split('T')[0] : (m as any).joinsDate || new Date().toISOString().split('T')[0]
+      }));
+      
+      setMembers(mappedMembers as any);
+
+      // Auto log in user
+      const mappedUser = {
+        ...newMember,
+        name: newMember.full_name || (newMember as any).name || 'Initiate Member',
+        avatarUrl: newMember.avatar_url || (newMember as any).avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        slaveName: newMember.bio || (newMember as any).slaveName || 'Candidate Member',
+        joinsDate: new Date().toISOString().split('T')[0]
+      };
+
+      setCurrentUser(mappedUser as any);
+      showToast(
+        isMe
+          ? 'Welcome, Administrator! System access fully unlocked.'
+          : 'Congratulations! Registration complete. Welcome to the chapter!',
+        'success'
+      );
+    } catch (err: any) {
+      showToast(`Registration failed: ${err.message || err}`, 'error');
     }
   };
 

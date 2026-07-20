@@ -11,7 +11,7 @@ import { dbService } from '../lib/dbService';
 import CrestLogo from './CrestLogo';
 
 // Sub-components import
-import PortalAuth, { PendingScreen } from './PortalAuth';
+import PortalAuth, { PendingScreen, SuspendedScreen } from './PortalAuth';
 import { LeftSidebar, RightSidebar } from './PortalSidebar';
 import { PortalFeed, getRelativeTime } from './PortalFeed';
 import PortalDirectory from './PortalDirectory';
@@ -410,10 +410,18 @@ export default function MemberPortal({
     );
   }
 
-  if (currentUser.role === 'Pending') {
+  if (currentUser.status === 'Pending') {
     return (
       <PendingScreen 
         user={currentUser} 
+        onLogout={onLogout} 
+      />
+    );
+  }
+
+  if (currentUser.status === 'Suspended') {
+    return (
+      <SuspendedScreen 
         onLogout={onLogout} 
       />
     );

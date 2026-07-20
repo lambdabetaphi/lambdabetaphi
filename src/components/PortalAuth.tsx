@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Lock, Mail, Phone, User, Landmark, Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { Member } from '../types';
 import CrestLogo from './CrestLogo';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface PortalAuthProps {
   onLogin: (email: string, password?: string) => Promise<boolean> | boolean;
@@ -49,11 +50,12 @@ export default function PortalAuth({ onLogin, onRegister, isSupabaseConfigured }
     setLoginError('');
     setIsLoading(true);
     try {
-      // Emulating or routing to Google Sign-In
-      const success = await onLogin('roderickdanzing04@gmail.com', 'google-auth-mock');
-      if (!success) {
-        // Fallback or create new pending
-        setLoginError('Google Sign-In succeeded, but your account requires admin approval.');
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signInWithOAuth({
+          provider: 'google'
+        });
+      } else {
+        setLoginError('Supabase is not configured.');
       }
     } catch (err: any) {
       setLoginError('Google Sign-In encountered an issue.');
@@ -490,6 +492,10 @@ export function PendingScreen({ user, onLogout }: PendingScreenProps) {
         <h3 className="text-xl font-serif font-black text-navy-950 tracking-wide uppercase">
           Awaiting Admin Approval
         </h3>
+
+        <div className="bg-amber-50 text-amber-800 text-[11px] font-bold py-2 px-3 border border-amber-200 uppercase tracking-wide">
+          Your account is waiting for administrator approval.
+        </div>
         
         <div className="flex items-center justify-center gap-3 p-3 bg-[#fbf9f4] border border-[#c5a059]/20">
           <img 
@@ -516,6 +522,44 @@ export function PendingScreen({ user, onLogout }: PendingScreenProps) {
           <p>&bull; DATE APPLIED: {user.created_at ? new Date(user.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</p>
           <p>&bull; STATUS: Pending Verification</p>
         </div>
+
+        <div className="flex gap-3 justify-center pt-2">
+          <button
+            onClick={onLogout}
+            className="px-6 py-2.5 bg-navy-950 text-gold-500 text-[10px] font-bold uppercase tracking-widest hover:bg-navy-900 transition-colors cursor-pointer w-full"
+          >
+            Sign Out of Portal
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Separate component for Suspended / Access Denied Mode
+interface SuspendedScreenProps {
+  onLogout: () => void;
+}
+
+export function SuspendedScreen({ onLogout }: SuspendedScreenProps) {
+  return (
+    <div className="min-h-screen bg-[#f3f4f6] flex flex-col items-center justify-center p-4 sm:px-6 lg:px-8 font-sans">
+      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-xl border border-red-500/20 text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-red-600"></div>
+        
+        <div className="flex justify-center">
+          <div className="p-4 bg-red-50 rounded-full border border-red-200">
+            <X className="w-12 h-12 text-red-600" />
+          </div>
+        </div>
+
+        <h3 className="text-xl font-serif font-black text-red-600 tracking-wide uppercase">
+          Access Denied
+        </h3>
+
+        <p className="text-xs text-navy-500 leading-relaxed max-w-sm mx-auto">
+          Your account has been suspended by an administrator. Access to the private community portal is strictly revoked.
+        </p>
 
         <div className="flex gap-3 justify-center pt-2">
           <button
