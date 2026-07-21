@@ -12,6 +12,10 @@ export interface Member {
   bio?: string;
   created_at?: string;
   updated_at?: string;
+  // Presentation/legacy compatibility fields
+  name?: string;
+  avatarUrl?: string;
+  slaveName?: string;
 }
 
 export interface Post {
@@ -72,6 +76,9 @@ export interface Event {
   location: string;
   event_date: string;
   created_by?: string; // member_id
+  image?: string;
+  time?: string;
+  date?: string;
   // Derived field
   rsvps?: string[]; // member_ids who rsvp'd (derived or mock fallback array)
 }
@@ -83,6 +90,9 @@ export interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
+  // Presentation/legacy compatibility fields
+  type?: string;
+  content?: string;
 }
 
 export interface Chapter {

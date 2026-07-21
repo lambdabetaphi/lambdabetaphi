@@ -12,10 +12,12 @@ import CrestLogo from './CrestLogo';
 
 // Sub-components import
 import PortalAuth, { PendingScreen, SuspendedScreen } from './PortalAuth';
-import { LeftSidebar, RightSidebar } from './PortalSidebar';
-import { PortalFeed, getRelativeTime } from './PortalFeed';
-import PortalDirectory from './PortalDirectory';
-import PortalGallery from './PortalGallery';
+import { LeftSidebar } from './PortalSidebar';
+import { AppLayout, PortalTab, RightSidebar } from './layout';
+import { PortalFeed, getRelativeTime } from './feed';
+import { PortalDirectory } from './directory';
+import { PortalGallery } from './gallery';
+import { PortalEvents } from './events';
 import PortalAdmin from './PortalAdmin';
 
 interface MemberPortalProps {
@@ -40,7 +42,7 @@ export default function MemberPortal({
 
   // Global Portal active Navigation Tab
   // Options: 'home' | 'directory' | 'gallery' | 'events' | 'announcements' | 'officers' | 'notifications' | 'profile' | 'settings' | 'admin'
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTab] = useState<PortalTab>('home');
 
   // Unified UI States
   const [posts, setPosts] = useState<Post[]>([]);
@@ -451,287 +453,66 @@ export default function MemberPortal({
   const unreadNotifs = notifications.filter(n => !n.is_read);
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] font-sans antialiased text-navy-950 flex flex-col">
-      
-      {/* =========================================================
-          1. TOP BAR NAVIGATION (Facebook/LinkedIn inspired)
-          ========================================================= */}
-      <header className="sticky top-0 z-40 bg-navy-950 text-white border-b border-[#c5a059]/20 h-16 shadow-md shrink-0">
-        <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-          
-          {/* Left section: Logo & Crest */}
-          <div 
-            onClick={() => setActiveTab('home')} 
-            className="flex items-center gap-2.5 cursor-pointer group"
-          >
-            <CrestLogo size={42} className="transition-transform group-hover:scale-105" />
-            <div className="flex flex-col text-left">
-              <span className="font-serif font-black tracking-wider text-xs md:text-sm text-gold-400">
-                LAMBDA BETA PHI
-              </span>
-              <span className="font-sans text-[7.5px] tracking-widest uppercase text-navy-300">
-                Private Community Portal
-              </span>
-            </div>
-          </div>
-
-          {/* Right section: Navigation controls */}
-          <div className="flex items-center gap-3.5">
+    <>
+      <AppLayout
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          setMobileMenuOpen(false);
+        }}
+        currentUser={currentUser}
+        notifications={notifications}
+        onMarkNotificationRead={handleMarkNotifRead}
+        onClearNotifications={handleClearNotifications}
+        onLogout={onLogout}
+        onNavigateToPublic={onNavigateToPublic}
+        onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+        mobileMenuOpen={mobileMenuOpen}
+        onMobileMenuClose={() => setMobileMenuOpen(false)}
+      >
+        {/* NEWS FEED / PORTAL HOME (3-column layout) */}
+        {activeTab === 'home' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             
-            {onNavigateToPublic && (
-              <button
-                onClick={onNavigateToPublic}
-                className="text-[10px] text-gold-400 hover:text-white border border-[#c5a059]/30 hover:border-white px-2.5 py-1.5 font-bold uppercase tracking-wider transition-all rounded-lg shrink-0 flex items-center gap-1"
-                title="Return to Public Website"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Public Site</span>
-              </button>
-            )}
-
-            {/* Notification bell and badge */}
-            <div className="relative">
-              <button
-                onClick={() => setNotifDrawerOpen(!notifDrawerOpen)}
-                className="p-2 rounded-full hover:bg-white/10 text-gold-400 hover:text-white transition-colors relative cursor-pointer"
-              >
-                <Bell className="w-5 h-5 shrink-0" />
-                {unreadNotifs.length > 0 && (
-                  <span className="absolute top-1 right-1.5 h-4 w-4 bg-rose-500 text-white rounded-full flex items-center justify-center text-[8px] font-mono font-bold border border-navy-950 animate-bounce">
-                    {unreadNotifs.length}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Drawer Popover */}
-              {notifDrawerOpen && (
-                <div className="absolute right-0 mt-3 bg-white text-navy-950 rounded-2xl shadow-2xl border border-[#c5a059]/20 w-80 py-2.5 z-50 animate-fade-in font-sans text-xs">
-                  <div className="flex items-center justify-between px-4 pb-2 border-b border-navy-950/5">
-                    <p className="font-serif font-black text-[10px] uppercase tracking-wider text-navy-950">
-                      System Notifications
-                    </p>
-                    <button
-                      onClick={handleClearNotifications}
-                      className="text-[9px] text-[#c5a059] font-bold uppercase hover:underline"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-
-                  <div className="max-h-[300px] overflow-y-auto pr-1">
-                    {notifications.length > 0 ? (
-                      notifications.slice(0, 5).map(notif => (
-                        <div 
-                          key={notif.id}
-                          onClick={() => {
-                            handleMarkNotifRead(notif.id);
-                            setNotifDrawerOpen(false);
-                            if (notif.type === 'new_post') setActiveTab('home');
-                            if (notif.type === 'new_announcement') setActiveTab('announcements');
-                            if (notif.type === 'new_event') setActiveTab('events');
-                          }}
-                          className={`p-3 border-b border-navy-950/5 hover:bg-navy-50/50 cursor-pointer flex items-start gap-2.5 transition-colors ${
-                            !notif.is_read ? 'bg-[#fbf9f4]' : ''
-                          }`}
-                        >
-                          <div className="mt-0.5 shrink-0">
-                            <span className="text-sm">
-                              {notif.type === 'new_post' ? '💬' : notif.type === 'new_announcement' ? '🚨' : '📅'}
-                            </span>
-                          </div>
-                          <div className="text-left">
-                            <p className="font-bold text-navy-950 text-[10.5px] leading-tight">{notif.title}</p>
-                            <p className="text-[9px] text-navy-500 leading-tight mt-0.5">{notif.content}</p>
-                            <p className="text-[7.5px] text-navy-400 font-mono mt-1 uppercase">{getRelativeTime(notif.created_at)}</p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="py-8 text-center text-navy-400 italic text-[10px]">Registry is completely quiet.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* User Mini-Card profile */}
-            <div className="flex items-center gap-2 border-l border-white/10 pl-3.5">
-              <img 
-                src={currentUser.avatarUrl} 
-                alt={currentUser.name} 
-                className="w-8.5 h-8.5 rounded-full object-cover border border-[#c5a059] cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => setActiveTab('profile')}
-                referrerPolicy="no-referrer"
+            {/* Left sidebar: Member Profile card */}
+            <div className="col-span-1 lg:col-span-3 xl:col-span-3">
+              <LeftSidebar 
+                currentUser={currentUser!} 
+                onUpdateProfile={handleUpdateProfile} 
               />
-              <div className="hidden md:flex flex-col text-left">
-                <span className="font-bold text-xs uppercase tracking-wide leading-tight">{currentUser.name.split(' ')[0]}</span>
-                <span className="text-[8.5px] text-gold-400 font-mono font-bold uppercase leading-tight mt-0.5">SLAVE: {currentUser.slaveName}</span>
-              </div>
-
-              {/* Sign out */}
-              <button 
-                onClick={onLogout}
-                title="Sign Out of Secure Session"
-                className="p-1.5 rounded-full text-navy-400 hover:text-red-400 transition-colors cursor-pointer ml-1.5"
-              >
-                <LogOut className="w-4.5 h-4.5" />
-              </button>
             </div>
 
-            {/* Mobile menu button */}
-            <button 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 hover:bg-white/10 rounded-lg text-white"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-          </div>
-
-        </div>
-      </header>
-
-      {/* =========================================================
-          2. CORE TWO/THREE-COLUMN COMMUNITY AREA
-          ========================================================= */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-5 flex gap-5 overflow-hidden relative">
-        
-        {/* ====================================
-           A. LEFT NAVIGATION BAR MENU (Desktop only, responsive drawers)
-           ==================================== */}
-        <aside className="hidden md:flex flex-col w-64 bg-white rounded-2xl shadow-sm border border-navy-950/5 p-4 shrink-0 overflow-y-auto">
-          <div className="space-y-1 select-none">
-            <p className="text-[9px] font-bold text-navy-400 uppercase tracking-widest pl-3 mb-2">Portal Services</p>
-            {navItems.map(item => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 text-[10.5px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
-                    isActive 
-                      ? 'bg-navy-950 text-gold-400 shadow-sm border border-navy-950' 
-                      : 'text-navy-950/75 hover:bg-navy-50 hover:text-navy-950'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4.5 h-4.5 ${isActive ? 'text-gold-400' : 'text-[#c5a059]'}`} />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[8px] font-mono animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Secure indicator */}
-          <div className="mt-auto pt-8 border-t border-navy-950/5 text-center text-[9px] text-navy-400 font-mono uppercase space-y-1">
-            <div className="flex items-center justify-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="text-emerald-700 font-bold">256-Bit SSL Encrypted</span>
+            {/* Middle center: Timeline feed */}
+            <div className="col-span-1 lg:col-span-6 xl:col-span-6">
+              <PortalFeed
+                currentUser={currentUser!}
+                posts={posts}
+                comments={comments}
+                onAddPost={handleAddPost}
+                onLikePost={handleLikePost}
+                onAddComment={handleAddComment}
+                showToast={showToast}
+              />
             </div>
-            <p>Sovereign Ledger Node active</p>
-          </div>
-        </aside>
 
-        {/* Mobile Navigation Drawer Overlay */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-xs z-50 md:hidden flex animate-fade-in font-sans">
-            <div className="w-64 bg-white h-full p-4 flex flex-col shadow-2xl border-r border-[#c5a059]/20">
-              <div className="flex items-center justify-between pb-4 border-b border-navy-950/5 mb-4">
-                <p className="font-serif font-black text-navy-950 text-xs uppercase tracking-wider">Chapters Hub</p>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-full hover:bg-navy-50 text-navy-950">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-1 flex-1 overflow-y-auto select-none">
-                {navItems.map(item => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setActiveTab(item.id);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 text-[10.5px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
-                        isActive 
-                          ? 'bg-navy-950 text-gold-400 shadow-sm' 
-                          : 'text-navy-950/75 hover:bg-navy-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="w-4.5 h-4.5 text-[#c5a059]" />
-                        <span>{item.label}</span>
-                      </div>
-                      {item.badge !== undefined && item.badge > 0 && (
-                        <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[8px] font-mono">
-                          {item.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-auto p-2 text-center text-[8.5px] font-mono text-navy-400">
-                &copy; Lambda Beta Phi Private Space
-              </div>
+            {/* Right sidebar: Directives, events */}
+            <div className="col-span-1 lg:col-span-3 xl:col-span-3 text-left">
+              <RightSidebar 
+                announcements={announcements} 
+                events={events} 
+                membersCount={localMembers.filter(m => m.status !== 'Pending').length}
+                chaptersCount={Array.from(new Set(localMembers.map(m => m.chapter).filter(Boolean))).length || 3}
+                onTabChange={(tab) => {
+                  setActiveTab(tab);
+                }}
+                onCreatePostClick={() => {
+                  setActiveTab('home');
+                }}
+              />
             </div>
+
           </div>
         )}
-
-        {/* ====================================
-           B. CENTER PANEL (Main viewports)
-           ==================================== */}
-        <main className="flex-1 overflow-y-auto pr-1">
-          
-          {/* NEWS FEED / PORTAL HOME (The 3-column layout) */}
-          {(activeTab === 'home' || activeTab === 'news_feed') && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              
-              {/* Left sidebar: Member Profile card (Desktop 3cols, hidden mobile) */}
-              <div className="hidden lg:block lg:col-span-3">
-                <LeftSidebar 
-                  currentUser={currentUser} 
-                  onUpdateProfile={handleUpdateProfile} 
-                />
-              </div>
-
-              {/* Middle center: Timeline feed */}
-              <div className="col-span-1 lg:col-span-6">
-                <PortalFeed
-                  currentUser={currentUser}
-                  posts={posts}
-                  comments={comments}
-                  onAddPost={handleAddPost}
-                  onLikePost={handleLikePost}
-                  onAddComment={handleAddComment}
-                  showToast={(msg, t) => showToast(msg, t as any)}
-                />
-              </div>
-
-              {/* Right sidebar: Directives, events (Desktop 3cols, hidden mobile) */}
-              <div className="hidden lg:block lg:col-span-3 text-left">
-                <RightSidebar
-                  announcements={announcements}
-                  events={events}
-                  members={localMembers}
-                  onRsvp={handleRsvpEvent}
-                  currentUser={currentUser}
-                  onNavigateTab={setActiveTab}
-                />
-              </div>
-
-            </div>
-          )}
 
           {/* MEMBERS DIRECTORY */}
           {activeTab === 'directory' && (
@@ -747,70 +528,18 @@ export default function MemberPortal({
               gallery={gallery}
               currentUser={currentUser}
               onAddGalleryItem={handleAddGalleryItem}
-              showToast={(msg, t) => showToast(msg, t as any)}
+              showToast={showToast}
             />
           )}
 
           {/* EVENTS & ASSEMBLIES */}
           {activeTab === 'events' && (
-            <div className="space-y-4 text-left">
-              <div className="bg-white rounded-2xl shadow-sm border border-navy-950/5 p-4 flex justify-between items-center">
-                <div>
-                  <h3 className="font-serif font-black text-navy-950 text-base uppercase tracking-wide flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-[#c5a059]" />
-                    Assemblies & Conclaves
-                  </h3>
-                  <p className="text-[10px] text-navy-400 uppercase tracking-widest font-semibold mt-0.5">Sovereign Chapters Hub Calendar</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {events.map(e => {
-                  const isRsvpd = e.rsvps.includes(currentUser.id) || e.rsvps.includes(currentUser.email);
-                  return (
-                    <div key={e.id} className="bg-white rounded-2xl overflow-hidden border border-navy-950/5 flex flex-col">
-                      <div className="h-40 relative bg-navy-900 overflow-hidden">
-                        <img src={e.image} alt={e.title} className="w-full h-full object-cover opacity-85" />
-                        <div className="absolute top-3 left-3 bg-white/95 px-2.5 py-1.5 rounded-lg text-center shadow-md">
-                          <p className="text-[9px] font-bold text-[#c5a059] uppercase tracking-wider leading-none">
-                            {new Date(e.date).toLocaleDateString(undefined, {month: 'short'})}
-                          </p>
-                          <p className="text-base font-serif font-black text-navy-950 leading-none mt-1">
-                            {new Date(e.date).getDate()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-4 flex-1 flex flex-col justify-between">
-                        <div>
-                          <h4 className="font-serif font-black text-navy-950 text-sm uppercase tracking-wide leading-tight">{e.title}</h4>
-                          <p className="text-[10px] text-navy-500 mt-1.5 leading-relaxed">{e.description}</p>
-                          
-                          <div className="mt-4 space-y-1.5 text-[10.5px] text-navy-600 font-medium">
-                            <p className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-[#c5a059]" /> {e.time}</p>
-                            <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-[#c5a059]" /> {e.location}</p>
-                          </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-navy-950/5 mt-4 flex items-center justify-between">
-                          <span className="text-[10px] text-navy-400 font-mono font-bold uppercase">{e.rsvps.length} RSVP'D MEMBERS</span>
-                          <button
-                            onClick={() => handleRsvpEvent(e.id)}
-                            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                              isRsvpd 
-                                ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
-                                : 'bg-navy-950 text-gold-500 hover:bg-navy-900'
-                            }`}
-                          >
-                            {isRsvpd ? 'Going ✓' : 'Register RSVP'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <PortalEvents
+              events={events}
+              currentUser={currentUser}
+              allMembers={localMembers}
+              onRsvp={handleRsvpEvent}
+            />
           )}
 
           {/* ANNOUNCEMENTS DIRECTIVES BOARD */}
@@ -987,7 +716,7 @@ export default function MemberPortal({
                   onAddPost={handleAddPost}
                   onLikePost={handleLikePost}
                   onAddComment={handleAddComment}
-                  showToast={(msg, t) => showToast(msg, t as any)}
+                  showToast={showToast}
                 />
               </div>
 
@@ -1316,13 +1045,11 @@ ON CONFLICT (id) DO NOTHING;
               onAddEvent={handleAddEvent}
               onDeleteAnnouncement={handleDeleteAnnouncement}
               onDeleteEvent={handleDeleteEvent}
-              showToast={(msg, t) => showToast(msg, t as any)}
+              showToast={showToast}
             />
           )}
 
-        </main>
-
-      </div>
+      </AppLayout>
 
       {/* =========================================================
           3. Dynamic Floating Toast Messages
@@ -1337,7 +1064,6 @@ ON CONFLICT (id) DO NOTHING;
           <span className="text-[11px] font-bold tracking-wide uppercase font-mono">{toast.message}</span>
         </div>
       )}
-
-    </div>
+    </>
   );
 }
