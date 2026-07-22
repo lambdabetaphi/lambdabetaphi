@@ -180,6 +180,10 @@ export const dbService = {
       if (uploadError) {
         console.error('Supabase avatars storage bucket upload error:', uploadError);
 
+        if (uploadError.message?.includes('row-level security') || uploadError.message?.includes('RLS')) {
+          throw new Error('Supabase Storage RLS Policy Error: Please run the Storage RLS SQL Migration script provided in Admin -> Supabase Setup to enable upload permissions on the avatars bucket.');
+        }
+
         // Fallback attempt to 'profiles' bucket if 'avatars' bucket is restricted or uncreated
         const fallbackBucket = 'profiles';
         const { error: fallbackError } = await supabase.storage

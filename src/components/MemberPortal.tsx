@@ -961,6 +961,60 @@ CREATE TABLE IF NOT EXISTS public.gallery (
 INSERT INTO public.members (id, name, email, role, gender, chapter, batch, position, "joinsDate", "avatarUrl", phone, "slaveName", birthday, "isOnline", "chapterPoints", "duesStatus", "duesAmount")
 VALUES ('m1', 'Roderick Danzing', 'roderickdanzing04@gmail.com', 'Admin', 'Brother', 'Supreme Archon Chapter', 'Alpha Class 2022', 'Supreme Commander', '2022-01-15', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', '0917-555-0123', 'System Architect', '2004-07-20', true, 500, 'Paid', 0)
 ON CONFLICT (id) DO NOTHING;
+
+-- ========================================================
+-- SUPABASE STORAGE BUCKET & ROW LEVEL SECURITY (RLS) POLICIES
+-- ========================================================
+
+-- 1. Create 'avatars' storage bucket if not present
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('avatars', 'avatars', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- 2. Ensure RLS remains ENABLED on storage.objects
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- 3. Remove existing policies on storage.objects to avoid conflicts
+DROP POLICY IF EXISTS "Avatars Select Policy" ON storage.objects;
+DROP POLICY IF EXISTS "Avatars Insert Policy" ON storage.objects;
+DROP POLICY IF EXISTS "Avatars Update Policy" ON storage.objects;
+DROP POLICY IF EXISTS "Avatars Delete Policy" ON storage.objects;
+
+-- 4. SELECT (Read) Policy: Allow public read access to avatars
+CREATE POLICY "Avatars Select Policy"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+
+-- 5. INSERT (Upload) Policy: Allow authenticated users to upload to their own folder {userId}/*
+CREATE POLICY "Avatars Insert Policy"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- 6. UPDATE (Modify) Policy: Allow authenticated users to update files in their own folder {userId}/*
+CREATE POLICY "Avatars Update Policy"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+)
+WITH CHECK (
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- 7. DELETE (Remove) Policy: Allow authenticated users to delete files in their own folder {userId}/*
+CREATE POLICY "Avatars Delete Policy"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
 `;
                             navigator.clipboard.writeText(sqlContent);
                             showToast('Supabase SQL schema copied to clipboard!', 'success');
