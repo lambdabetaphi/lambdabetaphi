@@ -36,24 +36,175 @@ export const dbService = {
     setStored('lbp_prod_members', members);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('members').upsert(members);
-        if (error) console.warn('Supabase members save failed:', error.message);
+        const cleanMembers = members.map(m => ({
+          id: m.id,
+          full_name: m.full_name || (m as any).name || '',
+          email: m.email || '',
+          chapter: m.chapter || null,
+          batch: m.batch || null,
+          position: m.position || null,
+          role: m.role || 'Member',
+          status: m.status || 'Pending',
+          avatar_url: m.avatar_url || (m as any).avatarUrl || null,
+          phone: m.phone || null,
+          bio: m.bio || (m as any).slaveName || null,
+          updated_at: new Date().toISOString()
+        }));
+        const { error } = await supabase.from('members').upsert(cleanMembers, { onConflict: 'id' });
+        if (error) {
+          console.warn('Supabase members save failed:', error.message);
+        }
       } catch (e) {
         console.warn('Supabase members save exception:', e);
       }
     }
   },
 
+  /**
+   * Saves updated member profile fields directly to Supabase and local cache.
+   * Ensures schema compliance and throws clear error on database save failure.
+   */
   async updateMemberProfile(updatedMember: Member): Promise<Member> {
+    const normalizedMember: Member = {
+      ...updatedMember,
+      full_name: updatedMember.full_name || (updatedMember as any).name || '',
+      name: updatedMember.full_name || (updatedMember as any).name || '',
+      avatar_url: updatedMember.avatar_url || (updatedMember as any).avatarUrl || '',
+      avatarUrl: updatedMember.avatar_url || (updatedMember as any).avatarUrl || '',
+      bio: updatedMember.bio || (updatedMember as any).slaveName || '',
+      slaveName: updatedMember.bio || (updatedMember as any).slaveName || '',
+      updated_at: new Date().toISOString()
+    };
+
+    // Strictly mapped DB row matching public.members schema
+    const dbPayload = {
+      id: normalizedMember.id,
+      full_name: normalizedMember.full_name,
+      email: normalizedMember.email,
+      chapter: normalizedMember.chapter || null,
+      batch: normalizedMember.batch || null,
+      position: normalizedMember.position || null,
+      role: normalizedMember.role || 'Member',
+      status: normalizedMember.status || 'Pending',
+      avatar_url: normalizedMember.avatar_url || null,
+      phone: normalizedMember.phone || null,
+      bio: normalizedMember.bio || null,
+      updated_at: normalizedMember.updated_at
+    };
+
+    // 1. Update local storage cache
     const members = await this.getMembers();
-    const index = members.findIndex(m => m.id === updatedMember.id);
+    const index = members.findIndex(m => m.id === normalizedMember.id);
     if (index !== -1) {
-      members[index] = updatedMember;
+      members[index] = normalizedMember;
     } else {
-      members.push(updatedMember);
+      members.push(normalizedMember);
     }
-    await this.saveMembers(members);
-    return updatedMember;
+    setStored('lbp_prod_members', members);
+
+    // 2. Persist to Supabase database
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from('members')
+        .upsert([dbPayload], { onConflict: 'id' });
+
+      if (error) {
+        console.error('Supabase profile update error:', error);
+        throw new Error(`Database error saving profile: ${error.message}`);
+      }
+
+      // Sync user metadata with Supabase Auth session if possible
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            full_name: normalizedMember.full_name,
+            avatar_url: normalizedMember.avatar_url,
+            chapter: normalizedMember.chapter,
+            batch: normalizedMember.batch
+          }
+        });
+      } catch (authErr) {
+        console.warn('Supabase Auth user metadata sync notice:', authErr);
+      }
+    }
+
+    return normalizedMember;
+  },
+
+  /**
+   * Uploads a profile picture file to Supabase Storage bucket 'avatars'.
+   * 
+   * Storage Configuration & Location:
+   * - Storage Bucket: 'avatars' (public bucket)
+   * - File Path Strategy: `${userId}/profile_${timestamp}.${extension}`
+   * - Public Retrieval URL Strategy:
+   *   `https://<project_id>.supabase.co/storage/v1/object/public/avatars/${userId}/profile_${timestamp}.${ext}`
+   */
+  async uploadProfilePicture(file: File, userId: string): Promise<string> {
+    if (!isSupabaseConfigured || !supabase) {
+      console.warn('Supabase not configured, using local Data URL fallback');
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to convert image to Data URL'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const cleanUserId = (userId || 'user_' + Date.now()).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileName = `profile_${Date.now()}.${ext}`;
+      const filePath = `${cleanUserId}/${fileName}`;
+      const primaryBucket = 'avatars';
+
+      // 1. Ensure bucket exists if user has storage administrative permissions
+      try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const bucketExists = buckets?.some(b => b.name === primaryBucket);
+        if (!bucketExists) {
+          await supabase.storage.createBucket(primaryBucket, { public: true });
+        }
+      } catch (e) {
+        // Continue to upload attempt if bucket listing is restricted
+      }
+
+      // 2. Upload image file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from(primaryBucket)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Supabase avatars storage bucket upload error:', uploadError);
+
+        // Fallback attempt to 'profiles' bucket if 'avatars' bucket is restricted or uncreated
+        const fallbackBucket = 'profiles';
+        const { error: fallbackError } = await supabase.storage
+          .from(fallbackBucket)
+          .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+        if (fallbackError) {
+          throw new Error(`Storage upload failed: ${uploadError.message || fallbackError.message}`);
+        }
+
+        const { data: fbUrlData } = supabase.storage.from(fallbackBucket).getPublicUrl(filePath);
+        if (fbUrlData?.publicUrl) return fbUrlData.publicUrl;
+      }
+
+      // 3. Obtain and verify public access URL
+      const { data: urlData } = supabase.storage.from(primaryBucket).getPublicUrl(filePath);
+      if (!urlData?.publicUrl) {
+        throw new Error('Failed to retrieve public URL from Supabase Storage');
+      }
+
+      return urlData.publicUrl;
+    } catch (err: any) {
+      console.error('Error in uploadProfilePicture:', err);
+      throw new Error(err.message || 'Image upload failed. Please try again.');
+    }
   },
 
   // =================================================================

@@ -1,32 +1,53 @@
-import React, { useState } from 'react';
-import { User, Landmark, Shield, Calendar, Clock, Volume2, Award, Users, PenSquare, X, Upload, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Landmark, Shield, Calendar, Clock, Volume2, Award, Users, PenSquare, X, Upload, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Member, Announcement, Event } from '../types';
+import { dbService } from '../lib/dbService';
 
 interface LeftSidebarProps {
   currentUser: Member;
-  onUpdateProfile: (updated: Member) => void;
+  onUpdateProfile: (updated: Member) => Promise<void> | void;
 }
 
 export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
   
   // Edit Profile States
-  const [editName, setEditName] = useState(currentUser.full_name || '');
+  const [editName, setEditName] = useState(currentUser.full_name || currentUser.name || '');
   const [editChapter, setEditChapter] = useState(currentUser.chapter || '');
   const [editBatch, setEditBatch] = useState(currentUser.batch || '');
-  const [editBio, setEditBio] = useState(currentUser.bio || '');
+  const [editBio, setEditBio] = useState(currentUser.bio || currentUser.slaveName || '');
   const [editPhone, setEditPhone] = useState(currentUser.phone || '');
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatar_url || '');
+  const [editAvatar, setEditAvatar] = useState(currentUser.avatar_url || currentUser.avatarUrl || '');
+  
+  // File upload and progress states
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [progressMsg, setProgressMsg] = useState<string>('');
+
+  // Synchronize local form state with currentUser whenever edit modal opens or currentUser updates
+  useEffect(() => {
+    if (isEditing) {
+      setEditName(currentUser.full_name || currentUser.name || '');
+      setEditChapter(currentUser.chapter || '');
+      setEditBatch(currentUser.batch || '');
+      setEditBio(currentUser.bio || currentUser.slaveName || '');
+      setEditPhone(currentUser.phone || '');
+      setEditAvatar(currentUser.avatar_url || currentUser.avatarUrl || '');
+      setAvatarFile(null);
+      setSaveError(null);
+      setProgressMsg('');
+    }
+  }, [isEditing, currentUser]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setAvatarFile(file);
+      setSaveError(null);
+      const previewUrl = URL.createObjectURL(file);
+      setEditAvatar(previewUrl);
     }
   };
 
@@ -46,26 +67,51 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setAvatarFile(file);
+      setSaveError(null);
+      const previewUrl = URL.createObjectURL(file);
+      setEditAvatar(previewUrl);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateProfile({
-      ...currentUser,
-      full_name: editName.trim(),
-      chapter: editChapter.trim(),
-      batch: editBatch.trim(),
-      bio: editBio.trim(),
-      phone: editPhone.trim(),
-      avatar_url: editAvatar
-    });
-    setIsEditing(false);
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      let finalAvatarUrl = editAvatar;
+
+      // 1. Upload profile image file to Supabase Storage bucket 'avatars' if selected
+      if (avatarFile) {
+        setProgressMsg('Uploading image to Supabase Storage avatars bucket...');
+        finalAvatarUrl = await dbService.uploadProfilePicture(avatarFile, currentUser.id);
+      }
+
+      // 2. Persist profile fields to Supabase Database
+      setProgressMsg('Updating profile ledger in Supabase...');
+      const updatedUser: Member = {
+        ...currentUser,
+        full_name: editName.trim(),
+        name: editName.trim(),
+        chapter: editChapter.trim(),
+        batch: editBatch.trim(),
+        bio: editBio.trim(),
+        slaveName: editBio.trim(),
+        phone: editPhone.trim(),
+        avatar_url: finalAvatarUrl,
+        avatarUrl: finalAvatarUrl
+      };
+
+      await onUpdateProfile(updatedUser);
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error('Profile update failed:', err);
+      setSaveError(err?.message || 'Failed to save profile modifications. Please check your network connection.');
+    } finally {
+      setIsSaving(false);
+      setProgressMsg('');
+    }
   };
 
   return (
@@ -149,6 +195,28 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
             </div>
 
             <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs max-h-[80vh] overflow-y-auto">
+              {/* Error Notification Banner */}
+              {saveError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-start gap-2.5 animate-shake">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold text-[10px] uppercase tracking-wider">Save Failed</p>
+                    <p className="text-[11px] leading-tight mt-0.5">{saveError}</p>
+                  </div>
+                  <button type="button" onClick={() => setSaveError(null)} className="text-rose-500 hover:text-rose-800">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Progress Indicator */}
+              {isSaving && (
+                <div className="p-3 bg-gold-50/50 border border-[#c5a059]/30 rounded-xl text-navy-950 text-xs flex items-center gap-2.5">
+                  <Loader2 className="w-4 h-4 text-[#c5a059] animate-spin shrink-0" />
+                  <span className="font-medium text-[11px]">{progressMsg || 'Saving profile updates...'}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
                   Full Name
@@ -156,9 +224,10 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                 <input
                   type="text"
                   required
+                  disabled={isSaving}
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                  className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans disabled:opacity-50"
                 />
               </div>
 
@@ -170,9 +239,10 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                   <input
                     type="text"
                     required
+                    disabled={isSaving}
                     value={editChapter}
                     onChange={(e) => setEditChapter(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans disabled:opacity-50"
                   />
                 </div>
                 <div>
@@ -182,9 +252,10 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                   <input
                     type="text"
                     required
+                    disabled={isSaving}
                     value={editBatch}
                     onChange={(e) => setEditBatch(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -197,9 +268,10 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                   <input
                     type="text"
                     required
+                    disabled={isSaving}
                     value={editBio}
                     onChange={(e) => setEditBio(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans disabled:opacity-50"
                   />
                 </div>
                 <div>
@@ -209,16 +281,17 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                   <input
                     type="tel"
                     required
+                    disabled={isSaving}
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans"
+                    className="w-full p-2.5 rounded-lg border border-navy-950/15 focus:outline-none focus:ring-1 focus:ring-gold-500 bg-white text-navy-950 font-sans disabled:opacity-50"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                  Profile Picture
+                  Profile Picture (Supabase Storage)
                 </label>
                 <div 
                   onDragEnter={handleDrag}
@@ -241,17 +314,20 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                         className="w-12 h-12 object-cover rounded-md border border-navy-950/20 shadow-sm"
                         referrerPolicy="no-referrer"
                       />
-                      <div className="flex-1 text-left">
+                      <div className="flex-1 text-left overflow-hidden">
                         <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                          Update Success
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          {avatarFile ? 'Ready to Upload' : 'Image Registered'}
                         </p>
-                        <p className="text-[8px] text-navy-500 uppercase tracking-wider font-mono">Profile picture ready</p>
+                        <p className="text-[8px] text-navy-500 uppercase tracking-wider font-mono truncate">
+                          {avatarFile ? avatarFile.name : 'Current Profile Image'}
+                        </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setEditAvatar('')}
-                        className="p-1.5 hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-md transition-colors"
+                        disabled={isSaving}
+                        onClick={() => { setEditAvatar(''); setAvatarFile(null); }}
+                        className="p-1.5 hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-md transition-colors disabled:opacity-50"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -260,11 +336,13 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
                     <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full py-2">
                       <Upload className="w-5 h-5 text-navy-400 mb-1" />
                       <p className="text-[10px] font-bold text-navy-950 uppercase tracking-wider">
-                        Upload Picture
+                        Upload Picture to Supabase Storage
                       </p>
+                      <p className="text-[8px] text-navy-400 mt-0.5">Click or drag & drop PNG/JPG image file</p>
                       <input
                         type="file"
                         accept="image/*"
+                        disabled={isSaving}
                         onChange={handleFileChange}
                         className="hidden"
                       />
@@ -276,16 +354,19 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-navy-950/5">
                 <button
                   type="button"
+                  disabled={isSaving}
                   onClick={() => setIsEditing(false)}
-                  className="px-5 py-2 border border-navy-950/10 text-navy-950 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-50 transition-colors"
+                  className="px-5 py-2 border border-navy-950/10 text-navy-950 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-50 transition-colors disabled:opacity-50"
                 >
                   Dismiss
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-navy-950 text-gold-500 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-900 transition-colors"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-navy-950 text-gold-500 text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-navy-900 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  Save Profile
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {isSaving ? 'Saving...' : 'Save Profile'}
                 </button>
               </div>
             </form>
