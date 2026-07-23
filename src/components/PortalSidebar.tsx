@@ -85,7 +85,7 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
       // 1. Upload profile image file to Supabase Storage bucket 'avatars' if selected
       if (avatarFile) {
         setProgressMsg('Uploading image to Supabase Storage avatars bucket...');
-        finalAvatarUrl = await dbService.uploadProfilePicture(avatarFile, currentUser.id);
+        finalAvatarUrl = await dbService.uploadProfilePicture(avatarFile);
       }
 
       // 2. Persist profile fields to Supabase Database

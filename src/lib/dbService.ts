@@ -136,40 +136,30 @@ export const dbService = {
    * 
    * Storage Configuration & Location:
    * - Storage Bucket: 'avatars' (public bucket)
-   * - File Path Strategy: `${userId}/profile_${timestamp}.${extension}`
-   * - Public Retrieval URL Strategy:
-   *   `https://<project_id>.supabase.co/storage/v1/object/public/avatars/${userId}/profile_${timestamp}.${ext}`
+   * - File Path Strategy: `${auth.uid()}/profile_${timestamp}.${extension}`
+   * - Policy Requirement: (storage.foldername(name))[1] = auth.uid()
    */
-  async uploadProfilePicture(file: File, userId: string): Promise<string> {
+  async uploadProfilePicture(file: File): Promise<string> {
     if (!isSupabaseConfigured || !supabase) {
-      console.warn('Supabase not configured, using local Data URL fallback');
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('Failed to convert image to Data URL'));
-        reader.readAsDataURL(file);
-      });
+      throw new Error('Supabase Storage uploads require configured VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY variables.');
+    }
+
+    // 1. Obtain authenticated Supabase Auth user context
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user || !user.id) {
+      console.warn('No active Supabase Auth user session found for Storage upload:', authError);
+      throw new Error('Supabase Storage uploads require an active authenticated Supabase session. Please sign in or register via Supabase Auth.');
     }
 
     try {
       const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const cleanUserId = (userId || 'user_' + Date.now()).replace(/[^a-zA-Z0-9_-]/g, '_');
       const fileName = `profile_${Date.now()}.${ext}`;
-      const filePath = `${cleanUserId}/${fileName}`;
+      // Strictly use authenticated Supabase Auth user.id to guarantee matching auth.uid() in Storage RLS policy
+      const filePath = `${user.id}/${fileName}`;
       const primaryBucket = 'avatars';
 
-      // 1. Ensure bucket exists if user has storage administrative permissions
-      try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const bucketExists = buckets?.some(b => b.name === primaryBucket);
-        if (!bucketExists) {
-          await supabase.storage.createBucket(primaryBucket, { public: true });
-        }
-      } catch (e) {
-        // Continue to upload attempt if bucket listing is restricted
-      }
-
-      // 2. Upload image file to Supabase Storage
+      // 2. Upload image file to Supabase Storage 'avatars' bucket
       const { error: uploadError } = await supabase.storage
         .from(primaryBucket)
         .upload(filePath, file, {
@@ -181,21 +171,10 @@ export const dbService = {
         console.error('Supabase avatars storage bucket upload error:', uploadError);
 
         if (uploadError.message?.includes('row-level security') || uploadError.message?.includes('RLS')) {
-          throw new Error('Supabase Storage RLS Policy Error: Please run the Storage RLS SQL Migration script provided in Admin -> Supabase Setup to enable upload permissions on the avatars bucket.');
+          throw new Error(`Storage RLS Policy Error: Folder path (${user.id}) must match auth.uid() in the avatars bucket policy.`);
         }
 
-        // Fallback attempt to 'profiles' bucket if 'avatars' bucket is restricted or uncreated
-        const fallbackBucket = 'profiles';
-        const { error: fallbackError } = await supabase.storage
-          .from(fallbackBucket)
-          .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-        if (fallbackError) {
-          throw new Error(`Storage upload failed: ${uploadError.message || fallbackError.message}`);
-        }
-
-        const { data: fbUrlData } = supabase.storage.from(fallbackBucket).getPublicUrl(filePath);
-        if (fbUrlData?.publicUrl) return fbUrlData.publicUrl;
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
       }
 
       // 3. Obtain and verify public access URL
