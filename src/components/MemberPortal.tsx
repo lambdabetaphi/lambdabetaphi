@@ -527,6 +527,7 @@ export default function MemberPortal({
             <PortalGallery
               gallery={gallery}
               currentUser={currentUser}
+              events={events}
               onAddGalleryItem={handleAddGalleryItem}
               showToast={showToast}
             />

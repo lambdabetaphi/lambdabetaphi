@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import { X, Calendar, MapPin, Clock, Users, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Calendar, MapPin, Clock, Users, ArrowRight, ShieldCheck, FolderOpen, Camera, Info } from 'lucide-react';
 import { Event, Member } from '../../types';
 import { formatEventDateTime } from '../../utils/date';
 
@@ -185,6 +185,32 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
               <p className="font-sans text-[11.5px] text-navy-700 leading-relaxed whitespace-pre-line">
                 {event.description}
               </p>
+            </div>
+
+            {/* Linked Event Photo Album Section */}
+            <div className="bg-white p-5 rounded-2xl border border-navy-950/5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] text-navy-400 uppercase tracking-widest font-black flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4 text-[#c5a059]" /> Event Photo Album
+                </h4>
+                <span className="text-[8.5px] font-mono text-emerald-800 uppercase font-black bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Media Registry Linked
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-[#fbf9f4] rounded-xl border border-[#c5a059]/20 flex items-center gap-3">
+                <div className="w-9 h-9 bg-navy-950 text-gold-500 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-[11px] font-bold text-navy-950 font-serif">
+                    {event.albumId ? 'Official Event Album Active' : `Photos Archive for ${event.title}`}
+                  </p>
+                  <p className="text-[9.5px] text-navy-600 font-sans mt-0.5">
+                    Browse and inspect high-resolution event photography in the central Chapter Media Gallery tab.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Roster list of RSVP'D Members */}

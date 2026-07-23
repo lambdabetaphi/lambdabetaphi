@@ -88,8 +88,8 @@ export interface Event {
   image?: string;
   time?: string;
   date?: string;
-  // Derived field
   rsvps?: string[]; // member_ids who rsvp'd (derived or mock fallback array)
+  albumId?: string; // Optional linked album ID for photo archives
 }
 
 export interface Notification {
@@ -118,5 +118,24 @@ export interface GalleryItem {
   caption?: string;
   uploaded_by_name?: string;
   created_at?: string;
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  description?: string;
+  coverPhoto?: string;
+  eventId?: string;
+  createdAt: string;
+  photoCount: number;
+}
+
+export interface AlbumPhoto {
+  id: string;
+  albumId: string;
+  imageUrl: string;
+  caption?: string;
+  uploadedBy: string;
+  createdAt: string;
 }
 

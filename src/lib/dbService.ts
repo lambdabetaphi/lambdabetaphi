@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Member, Post, Comment, Announcement, Event, Notification, Chapter, GalleryItem } from '../types';
+import { Member, Post, Comment, Announcement, Event, Notification, Chapter, GalleryItem, Album, AlbumPhoto } from '../types';
 
 // Storage helper for offline/caching if Supabase is temporarily offline
 const getStored = <T>(key: string, initial: T): T => {
@@ -682,8 +682,186 @@ export const dbService = {
     return event;
   },
 
+  // =================================================================
+  // 7. ALBUMS & MEDIA ARCHIVES
+  // =================================================================
+  async getAlbums(): Promise<Album[]> {
+    const DEFAULT_ALBUMS: Album[] = [
+      {
+        id: 'alb_1',
+        title: 'Foundation Day 2026 Jubilee',
+        description: 'Commemorating 57 years of leadership, brotherhood, and service at University of Bohol.',
+        coverPhoto: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80',
+        eventId: 'e1',
+        createdAt: '2026-07-09T08:00:00Z',
+        photoCount: 4
+      },
+      {
+        id: 'alb_2',
+        title: 'Grand Brotherhood & Sorority Assembly',
+        description: 'Quarterly chapter congress, financial reports, and leadership workshops.',
+        coverPhoto: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=800&q=80',
+        eventId: 'e2',
+        createdAt: '2026-06-15T10:30:00Z',
+        photoCount: 3
+      },
+      {
+        id: 'alb_3',
+        title: 'Community Health & Civic Outreach',
+        description: 'Joint medical mission and tree planting activity in Tagbilaran City.',
+        coverPhoto: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=800&q=80',
+        eventId: 'e3',
+        createdAt: '2026-05-20T07:15:00Z',
+        photoCount: 3
+      },
+      {
+        id: 'alb_4',
+        title: 'Initiation Rites & Welcoming 2026',
+        description: 'Formal ceremony welcoming Alpha Class 2026 to the sovereign fold.',
+        coverPhoto: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=800&q=80',
+        createdAt: '2026-04-10T14:00:00Z',
+        photoCount: 2
+      },
+      {
+        id: 'alb_5',
+        title: 'Chapter Archives & Historical Milestones',
+        description: 'Historical photographs from 1969 to present preserved in the sovereign vault.',
+        coverPhoto: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=800&q=80',
+        createdAt: '2026-01-01T00:00:00Z',
+        photoCount: 0
+      }
+    ];
+
+    return getStored<Album[]>('lbp_prod_albums', DEFAULT_ALBUMS);
+  },
+
+  async getAlbumById(id: string): Promise<Album | null> {
+    const albums = await this.getAlbums();
+    return albums.find(a => a.id === id) || null;
+  },
+
+  async getAllAlbumPhotos(): Promise<AlbumPhoto[]> {
+    const DEFAULT_ALBUM_PHOTOS: AlbumPhoto[] = [
+      {
+        id: 'p1',
+        albumId: 'alb_1',
+        imageUrl: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1200&q=80',
+        caption: '57th Foundation Anniversary Gala Dinner and Toast',
+        uploadedBy: 'Grand Supreme Archon',
+        createdAt: '2026-07-09T19:30:00Z'
+      },
+      {
+        id: 'p2',
+        albumId: 'alb_1',
+        imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+        caption: 'University Keynote Address & Chapter Commendations',
+        uploadedBy: 'Evelyn Sterling',
+        createdAt: '2026-07-09T14:15:00Z'
+      },
+      {
+        id: 'p3',
+        albumId: 'alb_1',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Alumni Delegation & Senior Chapter Members Reunion',
+        uploadedBy: 'Marcus Vance',
+        createdAt: '2026-07-09T11:00:00Z'
+      },
+      {
+        id: 'p4',
+        albumId: 'alb_1',
+        imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Jubilee Plaque Presentation and Ceremonial Oath',
+        uploadedBy: 'Helena Troy',
+        createdAt: '2026-07-09T09:45:00Z'
+      },
+      {
+        id: 'p5',
+        albumId: 'alb_2',
+        imageUrl: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Annual Conclave Deliberations and Strategic Agenda',
+        uploadedBy: 'Grand Supreme Archon',
+        createdAt: '2026-06-15T11:00:00Z'
+      },
+      {
+        id: 'p6',
+        albumId: 'alb_2',
+        imageUrl: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Sovereign Roster Audit and Financial Transparency Brief',
+        uploadedBy: 'Marcus Vance',
+        createdAt: '2026-06-15T14:20:00Z'
+      },
+      {
+        id: 'p7',
+        albumId: 'alb_2',
+        imageUrl: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Chapter Leadership Award Ceremonies',
+        uploadedBy: 'Helena Troy',
+        createdAt: '2026-06-15T16:45:00Z'
+      },
+      {
+        id: 'p8',
+        albumId: 'alb_3',
+        imageUrl: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Community Medical Mission in Barangay Dampas',
+        uploadedBy: 'Evelyn Sterling',
+        createdAt: '2026-05-20T08:30:00Z'
+      },
+      {
+        id: 'p9',
+        albumId: 'alb_3',
+        imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Distribution of Relief Packs & Academic Supplies',
+        uploadedBy: 'Evelyn Sterling',
+        createdAt: '2026-05-20T11:00:00Z'
+      },
+      {
+        id: 'p10',
+        albumId: 'alb_3',
+        imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Coastal Tree Planting & Environmental Protection Drive',
+        uploadedBy: 'Marcus Vance',
+        createdAt: '2026-05-20T14:10:00Z'
+      },
+      {
+        id: 'p11',
+        albumId: 'alb_4',
+        imageUrl: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Alpha Class 2026 Welcoming Processional',
+        uploadedBy: 'Grand Supreme Archon',
+        createdAt: '2026-04-10T15:00:00Z'
+      },
+      {
+        id: 'p12',
+        albumId: 'alb_4',
+        imageUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Sorority & Fraternity Oath of Loyalty Ceremony',
+        uploadedBy: 'Evelyn Sterling',
+        createdAt: '2026-04-10T17:30:00Z'
+      }
+    ];
+
+    return getStored<AlbumPhoto[]>('lbp_prod_album_photos', DEFAULT_ALBUM_PHOTOS);
+  },
+
+  async getAlbumPhotos(albumId: string): Promise<AlbumPhoto[]> {
+    const allPhotos = await this.getAllAlbumPhotos();
+    return allPhotos.filter(p => p.albumId === albumId);
+  },
+
   async getGalleryItems(): Promise<GalleryItem[]> {
-    return getStored<GalleryItem[]>('lbp_prod_gallery', []);
+    const photos = await this.getAllAlbumPhotos();
+    const albums = await this.getAlbums();
+    return photos.map(p => {
+      const album = albums.find(a => a.id === p.albumId);
+      return {
+        id: p.id,
+        album: album ? album.title : 'General',
+        image_url: p.imageUrl,
+        caption: p.caption,
+        uploaded_by_name: p.uploadedBy,
+        created_at: p.createdAt
+      };
+    });
   },
 
   async uploadGalleryItem(item: Omit<GalleryItem, 'id' | 'created_at'>): Promise<GalleryItem> {
@@ -692,9 +870,6 @@ export const dbService = {
       id: 'g_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       created_at: new Date().toISOString()
     };
-    const items = await this.getGalleryItems();
-    const updated = [newItem, ...items];
-    setStored('lbp_prod_gallery', updated);
     return newItem;
   },
 
