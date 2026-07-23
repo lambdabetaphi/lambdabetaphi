@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Landmark, Shield, Calendar, Clock, Volume2, Award, Users, PenSquare, X, Upload, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
-import { Member, Announcement, Event } from '../types';
+import { User, Landmark, Shield, Calendar, Clock, Volume2, Award, Users, PenSquare, X, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Member, Announcement, Event, getAvatarUrl, DEFAULT_AVATAR } from '../types';
 import { dbService } from '../lib/dbService';
 
 interface LeftSidebarProps {
@@ -80,15 +80,9 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
     setSaveError(null);
 
     try {
-      let finalAvatarUrl = editAvatar;
+      const finalAvatarUrl = editAvatar || currentUser.avatar_url || currentUser.avatarUrl || DEFAULT_AVATAR;
 
-      // 1. Upload profile image file to Supabase Storage bucket 'avatars' if selected
-      if (avatarFile) {
-        setProgressMsg('Uploading image to Supabase Storage avatars bucket...');
-        finalAvatarUrl = await dbService.uploadProfilePicture(avatarFile);
-      }
-
-      // 2. Persist profile fields to Supabase Database
+      // Persist profile fields to Supabase Database
       setProgressMsg('Updating profile ledger in Supabase...');
       const updatedUser: Member = {
         ...currentUser,
@@ -130,7 +124,7 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
           <div className="flex justify-center -mt-10 mb-2 relative z-10">
             <div className="p-1 bg-white rounded-full shadow-md border-2 border-[#c5a059]">
               <img 
-                src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'} 
+                src={getAvatarUrl(currentUser.avatar_url || currentUser.avatarUrl)} 
                 alt={currentUser.full_name} 
                 className="w-16 h-16 rounded-full object-cover"
                 referrerPolicy="no-referrer"
@@ -291,63 +285,23 @@ export function LeftSidebar({ currentUser, onUpdateProfile }: LeftSidebarProps) 
 
               <div>
                 <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                  Profile Picture (Supabase Storage)
+                  Profile Avatar
                 </label>
-                <div 
-                  onDragEnter={handleDrag}
-                  onDragOver={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDrop={handleDrop}
-                  className={`relative flex flex-col items-center justify-center border-2 border-dashed p-3 text-center transition-all min-h-[90px] rounded-lg ${
-                    dragActive 
-                      ? 'border-gold-500 bg-gold-50/20' 
-                      : editAvatar 
-                        ? 'border-[#c5a059]/40 bg-[#fbf9f4]' 
-                        : 'border-navy-950/15 hover:border-[#c5a059]/50 bg-white'
-                  }`}
-                >
-                  {editAvatar ? (
-                    <div className="flex items-center gap-3 w-full">
-                      <img 
-                        src={editAvatar} 
-                        alt="Preview" 
-                        className="w-12 h-12 object-cover rounded-md border border-navy-950/20 shadow-sm"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="flex-1 text-left overflow-hidden">
-                        <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          {avatarFile ? 'Ready to Upload' : 'Image Registered'}
-                        </p>
-                        <p className="text-[8px] text-navy-500 uppercase tracking-wider font-mono truncate">
-                          {avatarFile ? avatarFile.name : 'Current Profile Image'}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={isSaving}
-                        onClick={() => { setEditAvatar(''); setAvatarFile(null); }}
-                        className="p-1.5 hover:bg-rose-50 border border-rose-200 text-rose-600 rounded-md transition-colors disabled:opacity-50"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full py-2">
-                      <Upload className="w-5 h-5 text-navy-400 mb-1" />
-                      <p className="text-[10px] font-bold text-navy-950 uppercase tracking-wider">
-                        Upload Picture to Supabase Storage
-                      </p>
-                      <p className="text-[8px] text-navy-400 mt-0.5">Click or drag & drop PNG/JPG image file</p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        disabled={isSaving}
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
+                <div className="flex items-center gap-3.5 p-3 bg-[#fbf9f4] border border-[#c5a059]/30 rounded-lg">
+                  <img 
+                    src={getAvatarUrl(editAvatar || currentUser.avatar_url || currentUser.avatarUrl)} 
+                    alt="Member Avatar" 
+                    className="w-12 h-12 rounded-full object-cover border-2 border-[#c5a059] shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div>
+                    <p className="text-[10px] font-bold text-navy-950 uppercase tracking-wider">
+                      Standard Identity Avatar Active
+                    </p>
+                    <p className="text-[9px] text-navy-500 leading-tight mt-0.5">
+                      Custom profile picture uploads are deferred for Release v0.7.0. All members use standard chapter avatars.
+                    </p>
+                  </div>
                 </div>
               </div>
 

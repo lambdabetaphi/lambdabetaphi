@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, LogOut, User, Crown } from 'lucide-react';
-import { Member } from '../types';
+import { Member, getAvatarUrl } from '../types';
 import CrestLogo from './CrestLogo';
 
 interface NavigationProps {
@@ -75,7 +75,7 @@ export default function Navigation({ activeTab, setActiveTab, currentUser, onLog
                   className="flex items-center gap-2 text-[10px] text-navy-950 hover:text-gold-500 bg-navy-950/5 hover:bg-navy-950/10 px-3 py-1.5 rounded-none border border-navy-950/15 transition-all cursor-pointer font-bold uppercase tracking-wider"
                 >
                   <img 
-                    src={currentUser.avatar_url} 
+                    src={getAvatarUrl(currentUser.avatar_url || currentUser.avatarUrl)} 
                     alt={currentUser.full_name} 
                     className="w-4 h-4 rounded-none object-cover border border-gold-500"
                     referrerPolicy="no-referrer"
@@ -108,7 +108,7 @@ export default function Navigation({ activeTab, setActiveTab, currentUser, onLog
                 className="flex items-center justify-center w-8 h-8 rounded-none border border-gold-500 overflow-hidden"
               >
                 <img 
-                  src={currentUser.avatar_url} 
+                  src={getAvatarUrl(currentUser.avatar_url || currentUser.avatarUrl)} 
                   alt={currentUser.full_name} 
                   className="w-full h-full object-cover" 
                   referrerPolicy="no-referrer"
@@ -152,7 +152,7 @@ export default function Navigation({ activeTab, setActiveTab, currentUser, onLog
             <div className="pt-4 mt-2 border-t border-navy-950/10 flex items-center justify-between px-4">
               <div className="flex items-center gap-3">
                 <img 
-                  src={currentUser.avatar_url} 
+                  src={getAvatarUrl(currentUser.avatar_url || currentUser.avatarUrl)} 
                   alt={currentUser.full_name} 
                   className="w-8 h-8 rounded-none object-cover border border-gold-500"
                   referrerPolicy="no-referrer"

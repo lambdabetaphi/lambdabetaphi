@@ -146,6 +146,7 @@ export const dbService = {
 
     // 1. Obtain authenticated Supabase Auth user context
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (authError || !user || !user.id) {
       console.warn('No active Supabase Auth user session found for Storage upload:', authError);
@@ -158,6 +159,14 @@ export const dbService = {
       // Strictly use authenticated Supabase Auth user.id to guarantee matching auth.uid() in Storage RLS policy
       const filePath = `${user.id}/${fileName}`;
       const primaryBucket = 'avatars';
+
+      // Debug Log requested by QA
+      console.log('--- SUPABASE STORAGE UPLOAD DEBUG ---', {
+        authUserId: user?.id,
+        sessionUserId: session?.user?.id,
+        hasSessionToken: !!session?.access_token,
+        uploadPath: filePath
+      });
 
       // 2. Upload image file to Supabase Storage 'avatars' bucket
       const { error: uploadError } = await supabase.storage

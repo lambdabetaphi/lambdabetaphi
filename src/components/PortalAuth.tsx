@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Mail, Phone, User, Landmark, Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
-import { Member } from '../types';
+import { Shield, Lock, Mail, Phone, User, Landmark, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Member, DEFAULT_AVATAR, getAvatarUrl } from '../types';
 import CrestLogo from './CrestLogo';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -101,7 +101,7 @@ export default function PortalAuth({ onLogin, onRegister, isSupabaseConfigured }
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regName.trim() || !regEmail.trim() || !regChapter.trim() || !regSlaveName.trim() || !regPhone.trim() || !regAvatar.trim()) {
+    if (!regName.trim() || !regEmail.trim() || !regChapter.trim() || !regSlaveName.trim() || !regPhone.trim()) {
       setLoginError('All fields marked with * are strictly required.');
       return;
     }
@@ -116,7 +116,7 @@ export default function PortalAuth({ onLogin, onRegister, isSupabaseConfigured }
         chapter: regChapter.trim(),
         batch: regBatch.trim() || 'Alpha Class 2026',
         position: 'Candidate Member',
-        avatar_url: regAvatar,
+        avatar_url: regAvatar || DEFAULT_AVATAR,
         phone: regPhone.trim(),
         bio: regSlaveName.trim()
       }, regPassword || 'defaultpass123');
@@ -390,61 +390,23 @@ export default function PortalAuth({ onLogin, onRegister, isSupabaseConfigured }
 
             <div>
               <label className="block text-[9px] font-bold text-navy-950 uppercase tracking-widest mb-1">
-                Profile Picture <span className="text-red-500">*</span>
+                Profile Avatar
               </label>
-              <div 
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-                className={`relative flex flex-col items-center justify-center border border-dashed p-3 text-center transition-all min-h-[90px] ${
-                  dragActive 
-                    ? 'border-gold-500 bg-gold-50/20' 
-                    : regAvatar 
-                      ? 'border-[#c5a059]/40 bg-[#fbf9f4]' 
-                      : 'border-navy-950/15 hover:border-[#c5a059]/50 bg-white'
-                }`}
-              >
-                {regAvatar ? (
-                  <div className="flex items-center gap-3.5 w-full">
-                    <img 
-                      src={regAvatar} 
-                      alt="Preview" 
-                      className="w-11 h-11 object-cover border border-navy-950/20 shadow-sm"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="flex-1 text-left">
-                      <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3 text-emerald-600" />
-                        Image Selected
-                      </p>
-                      <p className="text-[8px] text-navy-400 uppercase tracking-wider font-mono">Ready to upload</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setRegAvatar('')}
-                      className="p-1 hover:bg-rose-50 border border-rose-200 text-rose-600 transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full py-1">
-                    <Upload className="w-4.5 h-4.5 text-navy-400 mb-1" />
-                    <p className="text-[9px] font-bold text-navy-950 uppercase tracking-wider">
-                      Upload Picture
-                    </p>
-                    <p className="text-[7.5px] text-navy-400 uppercase tracking-wider font-mono mt-0.5">
-                      Drag & Drop or Click
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+              <div className="flex items-center gap-3 p-3 bg-[#fbf9f4] border border-[#c5a059]/30">
+                <img 
+                  src={getAvatarUrl(regAvatar)} 
+                  alt="Default Member Avatar" 
+                  className="w-10 h-10 rounded-full object-cover border border-[#c5a059] shrink-0"
+                  referrerPolicy="no-referrer"
+                />
+                <div>
+                  <p className="text-[10px] font-bold text-navy-950 uppercase tracking-wider">
+                    Standard Chapter Avatar Assigned
+                  </p>
+                  <p className="text-[8.5px] text-navy-500 leading-tight mt-0.5">
+                    Profile picture uploads are deferred for Release v0.7.0.
+                  </p>
+                </div>
               </div>
             </div>
 

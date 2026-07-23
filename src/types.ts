@@ -1,3 +1,12 @@
+export const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+
+export function getAvatarUrl(url?: string | null): string {
+  if (url && url.trim().length > 0) {
+    return url;
+  }
+  return DEFAULT_AVATAR;
+}
+
 export interface Member {
   id: string; // Supabase Auth UUID
   full_name: string;
